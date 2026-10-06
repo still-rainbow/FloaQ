@@ -1,0 +1,13 @@
+target_semantics:
+  person: 물에 빠진 사람; 투하 대상
+  person_with_float: 사실상 배에 타고 있는 사람; 투하 비대상
+  application_alias: person_with_float를 person_on_boat 의미로 사용
+default_confidence: 0.25
+class_confidence:
+  animal: 0.25
+  float: 0.25
+  person: 0.19
+  person_with_float: 0.68
+nms_iou: 0.70
+evaluation_match_iou: 0.50
+note: 클래스별 confidence는 validation에서 고정했으며 test에 맞춰 재조정하지 않음

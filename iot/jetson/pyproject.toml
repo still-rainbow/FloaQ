@@ -1,0 +1,91 @@
+[project]
+name = "iot-jetson"
+version = "0.1.0"
+description = "Jetson Orin Nano application for JetPack 6.2.1"
+readme = "README.md"
+requires-python = "==3.10.12"
+dependencies = [
+    "certifi==2026.7.22",
+    "charset-normalizer==3.4.9",
+    "coloredlogs==15.0.1",
+    "contourpy==1.3.2",
+    "cycler==0.12.1",
+    "fastapi>=0.141.1",
+    "filelock==3.29.0",
+    "flatbuffers==25.12.19",
+    "fonttools==4.63.0",
+    "fsspec==2026.4.0",
+    "humanfriendly==10.0",
+    "idna==3.18",
+    "ImageIO==2.37.4",
+    "insightface==1.0.1",
+    "kiwisolver==1.5.0",
+    "lazy-loader==0.5",
+    "MarkupSafe==3.0.3",
+    "matplotlib==3.10.9",
+    "ml_dtypes==0.5.4",
+    "mpmath==1.3.0",
+    "networkx==3.4.2",
+    "numpy<2",
+    "nvidia-ml-py==13.610.43",
+    "onnx==1.22.0",
+    "onnxruntime-gpu==1.24.0",
+    "packaging==26.2",
+    "paho-mqtt==2.1.0",
+    "pgvector==0.5.0",
+    "pillow==12.3.0",
+    "polars==1.43.1",
+    "polars-runtime-32==1.43.1",
+    "protobuf==7.35.1",
+    "psutil==7.2.2",
+    "psycopg2-binary==2.9.12",
+    "pydantic",
+    "pyparsing==3.3.2",
+    "python-dateutil==2.9.0.post0",
+    "PyYAML==6.0.3",
+    "pyzmq==27.1.0",
+    "requests==2.34.2",
+    "scikit-image==0.25.2",
+    "scipy==1.15.3",
+    "six==1.17.0",
+    "sympy==1.14.0",
+    "tifffile==2025.5.10",
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "tqdm==4.69.1",
+    "typing_extensions==4.16.0",
+    "ultralytics==8.4.110",
+    "ultralytics-thop==2.1.2",
+    "urllib3==2.7.0",
+    "uvicorn>=0.53.0",
+]
+
+[tool.uv]
+package = false
+python-downloads = "never"
+python-preference = "only-system"
+environments = ["sys_platform == 'linux' and platform_machine == 'aarch64'"]
+# JetPack provides cv2. Also block transitive pip OpenCV installations.
+# Validate system cv2 against the selected NumPy and application versions.
+exclude-dependencies = [
+    "opencv-python",
+    "opencv-python-headless",
+    "opencv-contrib-python",
+    "opencv-contrib-python-headless",
+    "onnxruntime",
+]
+
+[[tool.uv.index]]
+name = "jetson"
+url = "https://pypi.jetson-ai-lab.io/jp6/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "jetson" }
+torchvision = { index = "jetson" }
+onnxruntime-gpu = { path = "wheels/onnxruntime_gpu-1.24.0-cp310-cp310-linux_aarch64.whl" }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

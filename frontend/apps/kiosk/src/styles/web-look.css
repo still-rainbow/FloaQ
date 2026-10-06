@@ -1,0 +1,101 @@
+/* ══════════════════════════════════════════════════════════
+   관제 웹과 같은 모습 — 디자인만 덮어쓴다 (2026-09-14)
+
+   kiosk.css 는 기능과 함께 계속 바뀌는 파일이라 건드리지 않고, 이 파일을 그 뒤에 불러와 덮는다.
+   문구·데이터·동작·화면 구성·크기는 바꾸지 않는다. 모양(색·테두리·면)만
+   관제 웹(apps/web/src/styles/web.css)의 규칙을 따른다.
+
+     · 강조색은 남색(sea-ink), 포커스는 주황(buoy). 청록(foam)은 야간 테마에서만
+     · 노랑은 겨자색 대신 호박색
+     · 배경의 빛 번짐·그라데이션 없음 — 면은 평평하게
+     · 한쪽만 굵은 테두리 없음 — 상태는 네 변 같은 테두리 색으로
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 토큰 ── */
+:root {
+  --warn: #d97706; --warn-rgb: 217, 119, 6;
+  --ok-rgb: 47, 143, 109; --alert-rgb: 217, 64, 64;
+  --accent: var(--sea-ink); --accent-ink: #fff;
+}
+:root[data-ui="dark"] {
+  --warn: #f5a524; --warn-rgb: 245, 165, 36;
+  --ok-rgb: 95, 201, 160; --alert-rgb: 255, 92, 92;
+  --accent: var(--foam); --accent-ink: var(--abyss);
+}
+
+/* ── 면 — 빛 번짐 없이 평평하게 ── */
+.screen::before,
+.shell::before { content: none; }
+.splash { background: #093246; }
+.alert-layer { background: rgba(4, 16, 26, .8); backdrop-filter: blur(4px); }
+.joy-pad { background: var(--surface-2); }
+.col-map { background: var(--surface); }
+
+/* ── 버튼 · 입력 ── */
+.btn:focus-visible { outline-color: var(--buoy); }
+input:focus { outline: 2px solid var(--buoy); outline-offset: 1px; border-color: transparent; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { filter: brightness(1.12); }
+.icon-btn { width: 34px; height: 34px; }
+
+/* ── 상단 연결 알약 — Pi 알약만 버튼이라 font:inherit 가 글자 크기(11px)를 본문 크기로 덮어 키가 컸다 ── */
+.link-chip.as-btn { font-size: 11px; line-height: 1.6; }
+
+/* ── 묶음 상자 — 점선 대신 실선 ── */
+.fieldset { border: 1px solid var(--line); }
+.fieldset > .eyebrow { color: var(--ink-mid); }
+.rail-note { border: 1px solid var(--line); }
+.rail-note b { color: var(--ink); font-weight: 700; }
+.danger-zone { border: 1px solid rgba(var(--alert-rgb), .45); background: rgba(var(--alert-rgb), .05); }
+.set-hint b { color: var(--ink); font-weight: 700; }
+
+/* ── 상태 점 · 알약 — 다크 시절에 박아 둔 색 대신 지금 테마의 색 ── */
+.dot.live { box-shadow: 0 0 0 3px rgba(var(--ok-rgb), .18); }
+.dot.stale { box-shadow: 0 0 0 3px rgba(var(--warn-rgb), .18); }
+.dot.down { box-shadow: 0 0 0 3px rgba(var(--alert-rgb), .18); }
+.pill.ok { background: rgba(var(--ok-rgb), .14); }
+.pill.warn { background: rgba(var(--warn-rgb), .16); }
+.pill.alert { background: rgba(var(--alert-rgb), .14); }
+.batt { background: var(--surface-2); }
+.notice-warn { background: rgba(var(--warn-rgb), .12); }
+.mk-buoy.is-lost i { background: var(--warn); box-shadow: 0 0 0 8px rgba(var(--warn-rgb), .14); }
+
+/* ── 장비 카드 — 왼쪽 굵은 막대 대신 네 변 같은 테두리. 상태는 테두리 색과 아이콘 색 ── */
+.device { border: 1px solid var(--line); }
+.device[data-state="warn"] { border-color: rgba(var(--warn-rgb), .5); }
+.device[data-state="err"] { border-color: rgba(var(--alert-rgb), .5); }
+.device-icon { color: var(--accent); }
+.device[data-state="warn"] .device-icon { color: var(--warn); }
+.device[data-state="err"] .device-icon { color: var(--alert); }
+
+/* ── 오른쪽 탭 — 관제 웹 상세 탭처럼 회색 틀 안에서 고른 칸만 흰 면 ── */
+.tabs { background: var(--surface-2); border-color: var(--line); }
+.tab:hover { background: color-mix(in srgb, var(--surface) 60%, transparent); }
+.tab[aria-selected="true"] { background: var(--surface); box-shadow: var(--shadow); }
+.tab[aria-selected="true"] svg { color: var(--accent); }
+
+/* ── 관측값 — 고른 칸은 한쪽 막대 대신 테두리 + 바깥 링 ── */
+.reading[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(15, 58, 82, .1); }
+:root[data-ui="dark"] .reading[aria-pressed="true"] { box-shadow: 0 0 0 3px rgba(127, 212, 217, .16); }
+.summary-head .eyebrow { color: var(--ink-mid); }
+
+/* ── 선택 버튼들 — 눌린 것은 강조색 면 ── */
+.pick-btn { background: var(--surface); }
+.pick-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.pos-btn[aria-pressed="true"] { color: #fff; }
+.mode-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.mode-btn[data-mode="incident"][aria-pressed="true"] { background: var(--alert); border-color: var(--alert); color: #fff; }
+.mode-btn[data-mode="lost"][aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: #fff; }
+.expand-btn:hover { color: var(--accent); border-color: var(--accent); }
+.joy-stick { background: var(--accent); }
+
+/* ── 수동 신고 — 관제 웹의 종결 처리 버튼처럼 흰 면에 빨간 테두리, 올리면 채워진다 ── */
+.sos-fab { background: var(--surface); border: 1.5px solid var(--alert); backdrop-filter: none; }
+.sos-fab:hover { background: var(--alert); color: #fff; }
+.sos-btn { background: var(--surface); }
+.sos-btn:hover { border-color: var(--accent); background: var(--surface); }
+.sos-sec[data-urg="distress"] .sos-btn[data-type="MOB"] { background: rgba(var(--alert-rgb), .06); }
+.urg-u { background: rgba(var(--warn-rgb), .18); color: var(--warn); }
+.urg-s { background: rgba(15, 58, 82, .12); color: var(--sea-ink); }
+:root[data-ui="dark"] .urg-s { background: rgba(127, 212, 217, .16); color: var(--foam); }

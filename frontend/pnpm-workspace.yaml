@@ -1,0 +1,21 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# 워크스페이스 패키지는 레지스트리에서 찾지 않고 링크로 해결. 기본값 false.
+#
+# 현재 내부 의존성은 전부 workspace:* 라 이 설정 없이도 링크된다 —
+# 프로토콜 없이 선언한 의존성이 생겼을 때의 안전장치.
+#
+# pnpm 11 부터 .npmrc 는 인증·레지스트리 전용. 여기 없으면 무시된다
+linkWorkspacePackages: true
+
+# preferWorkspacePackages 기각 — saveWorkspaceProtocol(기본 on)이 켜져 있으면 무효
+
+# vite 가 esbuild 네이티브 바이너리를 필요로 한다.
+# 명시하지 않으면 pnpm 이 빌드 스크립트를 막아 dev 서버·빌드가 안 된다.
+#
+# pnpm 11 에서 onlyBuiltDependencies 제거 → allowBuilds 맵으로 대체.
+# 옛 키는 경고 없이 무시되므로 "설정은 있는데 차단됨" 상태가 된다
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,2962 @@
+/*
+ * 글자 크기 설정(보통 / 크게). 크기 값은 원래 쓰던 그대로 두고 <b>배율 하나만</b> 곱한다 —
+ * 단계를 네 개로 묶었더니 주변과 미묘하게 안 맞는 곳이 많았다(2026-09-18).
+ * 보통에서는 배율이 1 이라 예전과 픽셀 단위까지 같다.
+ */
+:root { --t-k: 1; }
+:root[data-text="big"] { --t-k: 1.15; }
+
+/* ── 상단 ─────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; gap: 18px;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+/* 로고는 홈으로 가는 버튼이다. 버튼 기본 모양(테두리·배경·글꼴)은 지우고 생김새는 그대로 둔다 */
+.brand {
+  appearance: none; border: 0; background: none; font: inherit; color: inherit;
+  padding: 0; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+}
+/* 누를 수 있다는 것은 글자가 아니라 <b>색이 뒤바뀌는 것</b>으로 알린다 — 상단 바에 밑줄을
+   하나 더 그으면 바로 아래 탭의 밑줄과 섞인다.
+   평소에는 Q 만 주황인데, 올리면 Floa 가 주황이 되고 Q 가 검정이 된다. 글자는 그대로고
+   두 색이 자리만 바꾼다 — 새 색을 들이지 않아 상단 바가 시끄러워지지 않는다. */
+.brand-name, .brand-name em { transition: color .18s ease; }
+.brand:hover .brand-name { color: var(--buoy); }
+.brand:hover .brand-name em { color: var(--ink); }
+.brand:focus-visible { outline: 2px solid var(--buoy); outline-offset: 3px; border-radius: var(--r-sm); }
+.brand-name { font-family: Jua, sans-serif; font-size: calc(21px * var(--t-k)); }
+.brand-name em { font-style: normal; color: var(--buoy); }
+.brand-sub {
+  font-size: calc(11px * var(--t-k)); color: var(--ink-dim);
+  padding-left: 10px; border-left: 1px solid var(--line-firm);
+}
+/*
+ * 최상위 탭 — 사고 · 기록 · (관리자만) 계정 관리.
+ *
+ * 밑줄 탭이다. 알약·세그먼트로 두면 아래의 정렬 줄·기록 전환과 모양이 같아져
+ * 무엇이 상위인지 안 읽힌다 — 화면 전체를 바꾸는 유일한 줄이라 여기만 밑줄을 쓴다.
+ */
+.view-tabs { display: flex; align-items: stretch; gap: 2px; align-self: stretch; margin: -13px 0; }
+.view-tab {
+  appearance: none; border: 0; background: none; cursor: pointer; font: inherit;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 16px; font-size: calc(13px * var(--t-k)); color: var(--ink-mid);
+  border-bottom: 2px solid transparent;
+}
+.view-tab:hover { color: var(--ink); }
+.view-tab[aria-selected="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--buoy); }
+.view-tab:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+/* 진행 중 건수. 할 일이 남았다는 신호라 사고 배지와 같은 빨강이다 */
+.view-tab-n {
+  font-style: normal; font-size: calc(11px * var(--t-k)); font-weight: 700; line-height: 1;
+  padding: 3px 6px; border-radius: 2px;
+  background: var(--alert); color: #fff;
+}
+
+/* ⚠ 데모 버튼. 탭과 같은 줄이지만 화면을 바꾸는 것이 아니라 **사고를 만드는** 동작이라
+   밑줄 탭과 섞이지 않게 테두리 있는 알약으로 둔다. Pi 가 붙으면 통째로 사라진다 */
+.sim-btn {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(11.5px * var(--t-k));
+  align-self: center; margin-left: 10px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 2px;
+  border: 1px dashed var(--line-firm); background: transparent; color: var(--ink-dim);
+}
+.sim-btn i { font-style: normal; font-size: calc(9px * var(--t-k)); color: var(--alert); }
+.sim-btn:hover { color: var(--ink); border-color: var(--ink-mid); }
+.sim-btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+
+/*
+ * 상단바 컨트롤은 **높이와 선 색을 하나로 맞춘다.** 각자 padding 으로 크기를 잡고 있어서
+ * 39.2 · 36 · 34 · 33.2px 로 넷이 다 달랐고, 로그아웃만 선이 두 배 진했다(2026-09-17).
+ * 한 줄에 나란히 서는 것들이라 높이가 1px만 달라도 바닥선이 어긋나 보인다.
+ */
+.topbar-right { --ctl-h: 34px; }
+.topbar-right > .role-switch,
+.topbar-right > .icon-btn,
+.topbar-right > .user,
+.topbar-right > .btn {
+  box-sizing: border-box; height: var(--ctl-h);
+  border: 1px solid var(--line);
+}
+
+.role-switch {
+  display: flex; align-items: stretch; gap: 3px; padding: 3px;
+  border-radius: 2px; background: var(--surface-2);
+}
+.role-btn {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k));
+  display: flex; align-items: center;
+  padding: 0 14px; border-radius: 2px;
+  background: transparent; color: var(--ink-mid);
+}
+.role-btn[aria-pressed="true"] { background: var(--sea-ink); color: #fff; font-weight: 700; }
+:root[data-ui="dark"] .role-btn[aria-pressed="true"] { background: var(--foam); color: var(--abyss); }
+.role-btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+.icon-btn {
+  appearance: none; cursor: pointer;
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border-radius: 2px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink-mid);
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--line-firm); }
+.icon-btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+.user {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 6px; border-radius: 2px;
+  border: 1px solid var(--line); background: var(--surface);
+  font-size: calc(12px * var(--t-k));
+}
+.avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--sea-ink); color: #fff;
+  display: grid; place-items: center; font-size: calc(11px * var(--t-k)); font-weight: 700;
+}
+
+/* ── 레이아웃 ─────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 344px minmax(0, 1fr) 348px;
+  gap: 1px;
+  background: var(--line);
+  height: calc(100vh - 57px);
+  min-height: 620px;
+}
+.pane { background: var(--bg); overflow: auto; }
+/* 지도 칸은 스크롤하지 않는다. `.pane` 이 켜 둔 스크롤바 자리(scrollbar-gutter)를 물려받으면
+   쓰지도 않는 10px 이 오른쪽에 비어, 지도와 오른쪽 패널 사이에 빈 띠로 보인다(2026-09-17) */
+.pane-map {
+  position: relative; padding: 0; background: var(--surface);
+  overflow: hidden; scrollbar-gutter: auto;
+}
+.pane-pad { padding: 16px; }
+
+/* ── 좌: 선박 / 사고 ──────────────────────── */
+.seg {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  padding: 3px; margin-bottom: 14px;
+  border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line);
+}
+.seg button {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k));
+  padding: 8px; border-radius: 2px; background: transparent; color: var(--ink-mid);
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
+.seg button:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+
+.list { display: flex; flex-direction: column; gap: 7px; }
+
+.vessel-card {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 11px;
+  align-items: center;
+  padding: 12px 13px;
+  border-radius: var(--r-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left; font: inherit; color: inherit;
+  width: 100%;
+  transition: border-color .16s, transform .1s;
+}
+.vessel-card:hover { border-color: var(--line-firm); }
+.vessel-card:active { transform: translateY(1px); }
+.vessel-card[aria-current="true"] { border-color: var(--buoy); }
+/* 카드 = 본문 버튼(선박 선택) + 지도 스위치. 버튼 안에 버튼을 넣을 수 없어 둘로 나눈다 */
+.vessel-card { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 10px 8px 13px; cursor: default; }
+.vessel-card-body {
+  appearance: none; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 11px; align-items: center;
+  padding: 4px 0; min-width: 0;
+}
+.vessel-card-body:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; border-radius: 2px; }
+.vessel-card-text { min-width: 0; }
+/* 진행 중 사고가 없는 배의 스위치 — 켤 수 없다. 꺼짐(흰 바탕)과 헷갈리지 않게 회색으로 채운다 */
+.inc-pick:disabled { cursor: default; }
+.inc-pick:disabled .sw-track { background: var(--surface-2); border-color: var(--line); }
+.inc-pick:disabled .sw-knob { background: var(--line-firm); box-shadow: none; }
+.inc-pick:disabled em { color: var(--ink-dim); }
+.inc-pick:disabled:hover { border-left-color: var(--line); }
+.inc-pick:disabled:hover .sw-track { border-color: var(--line); }
+.vessel-card:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+.vessel-avatar {
+  width: 34px; height: 34px; border-radius: 2px;
+  display: grid; place-items: center;
+  background: var(--surface-2); color: var(--sea-ink);
+}
+:root[data-ui="dark"] .vessel-avatar { color: var(--foam); }
+.vessel-card h3 { margin: 0; font-size: calc(13px * var(--t-k)); font-weight: 700; }
+.vessel-card p { margin: 1px 0 0; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot.sail { background: var(--ok); box-shadow: 0 0 0 3px rgba(47, 143, 109, .16); }
+.status-dot.port { background: var(--ink-dim); }
+.status-dot.warn { background: var(--alert); box-shadow: 0 0 0 3px rgba(217, 64, 64, .16); }
+
+/* 사고 타임라인 — 시간 순서가 정보다 */
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before {
+  content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px;
+  width: 2px; background: var(--line); border-radius: 2px;
+}
+.event { position: relative; padding: 0 0 18px; }
+.event::before {
+  content: ""; position: absolute; left: -19px; top: 5px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--ink-dim);
+}
+.event[data-kind="detect"]::before { border-color: var(--alert); background: var(--alert); }
+.event[data-kind="launch"]::before { border-color: var(--buoy); background: var(--buoy); }
+.event[data-kind="report"]::before { border-color: var(--warn); background: var(--warn); }
+.event[data-kind="resolve"]::before { border-color: var(--ok); background: var(--ok); }
+.event time { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.event h4 { margin: 1px 0 2px; font-size: calc(13px * var(--t-k)); font-weight: 700; }
+.event p { margin: 0; font-size: calc(11px * var(--t-k)); color: var(--ink-mid); line-height: 1.65; }
+
+/* ── 지도 ─────────────────────────────────── */
+.map-wrap { position: absolute; inset: 0; }
+.map-svg { width: 100%; height: 100%; display: block; }
+
+
+
+
+
+/* ══════════ 지도 ══════════ */
+.map-canvas { position:absolute; inset:0; }
+.leaflet-container {
+  font:inherit; background:var(--map-sea,#dcecec);
+  outline-offset:-2px;
+}
+/* 래스터는 색을 직접 못 바꾼다. 테마는 CSS filter 로 만든다. */
+.leaflet-tile-pane { filter:var(--tile-filter,none); }
+
+/*
+ * 🔴 <b>기록 지도는 한눈에 다르게 보여야 한다.</b> 지나가는 알림 한 줄로 말해 봤는데,
+ * 그건 떨 떨어지면 사라지고 나중에 화면을 보는 사람에겐 아무 소용이 없었다(2026-09-18).
+ *
+ * <p>둘을 가르는 방식은 둘이다.
+ *   ① 타일을 <b>회색조</b>로 — 끝난 일은 바다도 색이 바람다. 마커·경로는 그대로 색을 둔다 —
+ *     지도가 배경이고 읽을 것은 그 위에 있는 것이다.
+ *   ② 바다를 <b>누르지 않는다</b> — 누르는 이유는 지금 찾아야 하는 주황을 앞으로 내는 것인데,
+ *     기록에는 찾을 것이 없다. 어덟고 푸른 지도(진행) · 밝고 회상한 지도(기록)로 갈린다.</p>
+ */
+.map-wrap.is-log .leaflet-tile-pane {
+  /*
+   * 회색조 하나만으로는 약했다 — 기본 타일이 이미 재도가 눈 색이라(saturate .7)
+   * 무체색으로 가는 차이가 작았다. 파량을 끌 다음 누런브를 아주 얇게 얼어 둔다.
+   * 새드비처럼 노러면 지도가 바람모니 무늬처럼 되어 정작 읽어야 하는 마커를 이긴다 —
+   * 파량이 없어진 것만으로 이미 갈리고, 누런브는 거기에 온기를 한 점 얽는 정도다(2026-09-18).
+   */
+  filter: var(--tile-filter, none) grayscale(1) sepia(.18) contrast(1.04);
+}
+/* 지도 색이 달라진 것을 색맹이인 사람도 알 수 있게, 왼쪽 위 칩이 모드 이름을 단단하게 적는다 */
+.map-wrap.is-log .map-mode {
+  background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700;
+}
+.map-wrap.is-log .map-mode .map-mode-dot { background: #fff; box-shadow: none; }
+.map-wrap.is-log .map-mode:hover { background: var(--sea-ink); border-color: var(--sea-ink); }
+/* 타일이 아직 없는 칸도 같은 색이어야 한다 — 하늘색 바다가 한 조각이라도 남으면 무엇이 바뀜는지 헷갈린다 */
+.map-wrap.is-log .leaflet-container { background: #cfcdc6; }
+.leaflet-control-attribution { font-size: calc(10px * var(--t-k)); opacity:.72; padding:1px 6px; }
+.leaflet-bottom.leaflet-right .leaflet-control-zoom { margin-bottom:26px; }
+.leaflet-control-attribution a { color:inherit; }
+/* 지도 출처는 ODbL 조건이라 지울 수 없다 — ⓘ 로 접어 두고 누르면 펼친다 */
+.leaflet-control-attribution.attr-fold { display:none; }
+.leaflet-control-attribution.attr-fold.is-open { display:block; }
+.leaflet-control.attr-toggle {
+  appearance:none; cursor:pointer; font:inherit; font-size: calc(11px * var(--t-k)); line-height:1;
+  width:17px; height:17px; padding:0; margin:0;
+  display:grid; place-items:center;
+  border:1px solid var(--line); border-radius:2px;
+  background:rgba(255,255,255,.82); color:var(--ink-dim);
+}
+.leaflet-control.attr-toggle:hover { color:var(--ink); }
+.leaflet-control.attr-toggle:focus-visible { outline:2px solid var(--buoy); outline-offset:2px; }
+.leaflet-bar a { width:28px; height:28px; line-height:28px; }
+.leaflet-div-icon { background:transparent; border:0; }
+.mk { display:grid; place-items:center; pointer-events:none; }
+/* 지도 위 글자는 바다·육지 어디에 놓일지 모른다. 번지는 그림자 대신 **테두리**로 읽히게 한다 —
+   paint-order 로 테두리를 글자 아래에 깔아야 획이 굵어 보이지 않는다 */
+.mk-label { position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:5px; white-space:nowrap; text-align:center; font-size: calc(11px * var(--t-k)); font-weight:700; color:var(--map-ink,#cfe9ee);
+  -webkit-text-stroke:2.5px var(--map-halo,#041520); paint-order:stroke fill; }
+.mk-label span { display:block; font-weight:400; font-size: calc(10px * var(--t-k)); font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums; color:var(--map-ink-dim,#74a3b3); }
+/* position 은 absolute 여야 한다 — relative 로 두면 Leaflet 마커 칸 안에서 차례로 쌓여 뒤에 온 마커가 14px 씩 밀린다 */
+.mk-buoy { width:26px; height:26px; position:absolute; }
+.mk-buoy i { position:absolute; inset:0; margin:auto; width:22px; height:22px; border-radius:50%; background:#ff8a4c; border:2px solid #fff; box-shadow:0 0 0 8px rgba(255,138,76,.16); }
+.mk-buoy i::after { content:""; position:absolute; inset:0; margin:auto; width:8px; height:8px; border-radius:50%; background:rgba(6,19,31,.8); }
+.mk-buoy b { position:absolute; inset:0; margin:auto; width:22px; height:22px; border-radius:50%; border:2px solid #ff8a4c; animation:mkping 2.4s ease-out infinite; }
+.mk-buoy.is-lost i { background:var(--warn); box-shadow:0 0 0 8px rgba(var(--warn-rgb),.14); }
+
+/* 사고 발생 — 지도는 어두워지고 부표만 밝게 남는다 */
+.map-wrap.is-incident .mk-buoy i {
+  box-shadow:0 0 0 14px rgba(255,138,76,.22), 0 0 34px 10px rgba(255,138,76,.55);
+  border-color:#fff6ef;
+}
+.map-wrap.is-incident .mk-buoy b { border-color:#ffb185; border-width:2.5px; }
+.map-wrap.is-incident .mk-buoy .mk-label { color:#fff; -webkit-text-stroke:3px rgba(4,16,26,.95); }
+.map-wrap.is-incident .mk-buoy .mk-label span { color:#ffb185; }
+.map-wrap.is-incident .mk-vessel { opacity:.7; }
+.mk-buoy.is-lost b { display:none; }
+@keyframes mkping { 0% { transform:scale(1); opacity:.6; } 100% { transform:scale(2.6); opacity:0; } }
+.mk-vessel svg { display:block; filter:drop-shadow(0 0 3px rgba(0,0,0,.45)); }
+/* 사고 선박 세모 — 긴급도 색. 목록 카드와 같은 규칙(조난 빨강 · 긴급 노랑 · 안전 초록) */
+.mk-vessel { --mk-c: #d94040; --mk-rgb: 217, 64, 64; }
+.mk-vessel[data-urg="urgency"] { --mk-c: var(--warn); --mk-rgb: var(--warn-rgb); }
+
+/* Leaflet 은 pane 200~700, 컨트롤 1000 을 쓴다. 그 위로 올려야 가려지지 않는다. */
+/* Leaflet 은 pane 200~700, 컨트롤 1000 을 쓴다. 그 위로 올려야 가려지지 않는다. */
+.map-ui { position: absolute; z-index: 1200; }
+.map-ui.tl { top: 14px; left: 14px; }
+.map-ui.tr { top: 14px; right: 14px; }
+.map-ui.bl { bottom: 14px; left: 14px; }
+.map-ui.br { bottom: 14px; right: 14px; }
+
+.floaty {
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-firm);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+/* 범례는 "지금 지도에 뭐가 있나"를 답하는 목록이다. 기호 설명이 아니다. */
+.map-legend {
+  padding: 10px 12px; font-size: calc(11px * var(--t-k));
+  display: flex; flex-direction: column; gap: 5px;
+  min-width: 244px; max-width: 300px;
+}
+/* 머리글이 곧 접기 버튼이다. 지도를 넓게 보고 싶을 때 닫는다. */
+.legend-head {
+  appearance: none; border: 0; background: none; cursor: pointer; font: inherit;
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  font-size: calc(10px * var(--t-k)); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-dim); font-weight: 700; padding: 0 0 5px;
+  border-bottom: 1px solid var(--line);
+}
+/* 닫혀 있으면 아래에 나눌 목록이 없다. 선과 그 밑 여백을 없애 위아래 여백을 맞춘다 */
+.legend-top:has(.legend-head[aria-expanded="false"]) { border-bottom-color: transparent; padding-bottom: 0; }
+.legend-head b { color: var(--ink); }
+.legend-head:hover { color: var(--ink); }
+.legend-head:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.legend-caret {
+  width: 0; height: 0; flex: none;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform .15s;
+}
+.legend-fold[aria-expanded="false"] .legend-caret { transform: rotate(-90deg); }
+
+/* 행을 누르면 그 사고로 지도를 옮긴다 */
+.legend-inc {
+  appearance: none; border: 0; background: none; cursor: pointer; font: inherit; text-align: left;
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 3px 7px;
+  padding: 4px 6px; margin: 0 -6px; border-radius: 2px;
+}
+/* 바탕은 항상 <b>행 전체</b>가 칠한다 — 이름 버튼만 칠하면 밑에 붙는
+   부표·사람 스위치가 회색 네모 밖으로 떨어진다(2026-09-17) */
+.legend-inc:hover { background: none; }
+.legend-inc:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+/*
+ * 보는 중인 행의 바탕은 <b>행 전체</b>가 칠한다. 전에는 이름 버튼만 칠해서
+ * 밑에 따로 붙는 부표·사람 스위치가 회색 네모 밖에 떨어져 보였다(2026-09-17).
+ */
+.legend-row { border-radius: 2px; }
+.legend-row:hover,
+.legend-row:has(.legend-inc.is-focus) { background: var(--surface-2); }
+.legend-inc.is-focus { background: none; }
+/*
+ * 지도 번호 — 목록 카드(.inc-no) · 범례(.legend-no) · 지도 라벨(.map-no) 공통.
+ * ①처럼 글자 테두리만 있으면 색이 가늘어 안 보인다. 긴급도 색으로 동그라미를 채우고 숫자는 모두 흰색.
+ * 두 자리가 되면 알약 모양으로 늘어난다.
+ *
+ * 가운데 맞춤 — Noto Sans KR 은 글자 위 여백(ascent)이 커서 가운데에 두면 숫자 잉크가 약 1px 아래로 처진다.
+ * 아래 여백 2px 로 내용을 1px 끌어올린다(격자 가운데 정렬이라 여백의 절반만큼 움직인다).
+ */
+.inc-no, .legend-no, .map-no {
+  display: inline-grid; place-items: center; flex: none; box-sizing: border-box;
+  min-width: 18px; height: 18px; padding: 0 5px 2px; border-radius: 999px;
+  font-style: normal; font-weight: 800; font-size: calc(11px * var(--t-k)); line-height: 1; font-variant-numeric: tabular-nums;
+  color: #fff !important;
+}
+.legend-no:empty { background: none !important; }
+.legend-no.urg-d, .map-no.urg-d { background: var(--alert); }
+.legend-no.urg-u, .map-no.urg-u { background: var(--warn); }
+/* 지도 라벨 안에서는 글자 줄 높이가 달라 끌어올릴 필요가 없다(재어 보니 2px 주면 1.2px 위로 뜬다) */
+.mk-label .map-no { min-width: 16px; height: 16px; padding: 0 4px; font-size: calc(10px * var(--t-k)); margin-right: 4px; vertical-align: -3px; }
+/* 번호 배지는 제 색 바탕이 있어 테두리가 필요 없다. 두면 숫자 획이 뭉개진다 */
+.inc-no, .legend-no, .map-no,
+.map-wrap.is-incident .mk-label .map-no { -webkit-text-stroke:0; }
+.legend-name { font-weight: 700; color: var(--ink); }
+.legend-focus {
+  font-style: normal; font-size: calc(9px * var(--t-k)); font-weight: 700; letter-spacing: .02em;
+  padding: 1px 6px; border-radius: 2px; background: var(--sea-ink); color: #fff;
+}
+.legend-note { grid-column: 2 / -1; font-size: calc(10px * var(--t-k)); color: var(--ink-dim); }
+.legend-inc.is-focus .legend-note { color: var(--ink-mid); }
+.legend-empty { color: var(--ink-dim); }
+
+/* 범례 한 줄 = 사고 버튼 + 내리기(×).
+   × 는 두 줄(이름·설명) 사이 가운데가 아니라 **이름 줄**에 맞춘다. 버튼 안쪽 오른쪽에 자리를 비워 두고 그 위에 얹는다 —
+   hover 바탕도 × 까지 한 줄로 이어진다. */
+.legend-row { position: relative; margin: 0 -6px; }
+.legend-row .legend-inc { width: 100%; margin: 0; padding-right: 30px; }
+.legend-x {
+  position: absolute; top: 1px; right: 3px;
+  appearance: none; cursor: pointer; font: inherit;
+  width: 22px; height: 22px; display: grid; place-items: center;
+  border: 0; border-radius: 2px; background: none;
+  font-size: calc(15px * var(--t-k)); line-height: 1; color: var(--ink-dim);
+}
+.legend-x:hover { background: var(--surface-2); color: var(--alert); }
+.legend-x:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+
+/* 사고별 부표·사람 표시 스위치 — 이름 줄 첫 글자에 맞춰 들여 쓴다(행 여백 6 + 번호 18 + 간격 7) */
+.legend-layers { display: flex; gap: 12px; padding: 0 6px 6px 31px; }
+.layer-sw {
+  appearance: none; border: 0; background: none; font: inherit; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px; padding: 1px 0;
+  font-size: calc(10.5px * var(--t-k)); font-weight: 700; color: var(--ink-dim);
+}
+.layer-sw .sw-track { width: 24px; height: 14px; }
+.layer-sw .sw-knob { width: 9px; height: 9px; top: 1px; left: 1.5px; }
+.layer-sw:hover .sw-track { border-color: var(--sea-ink); }
+.layer-sw:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; border-radius: 2px; }
+.layer-sw[aria-checked="true"] { color: var(--ink); }
+.layer-sw[aria-checked="true"] .sw-track { background: var(--sea-ink); border-color: var(--sea-ink); }
+.layer-sw[aria-checked="true"] .sw-knob { transform: translateX(9px); }
+:root[data-ui="dark"] .layer-sw[aria-checked="true"] .sw-track { background: var(--foam); border-color: var(--foam); }
+
+.scale-bar { display: flex; align-items: center; gap: 8px; padding: 7px 11px; font-size: calc(11px * var(--t-k)); color: var(--ink-mid); }
+.scale-line { width: 54px; height: 1px; background: var(--ink-mid); position: relative; }
+.scale-line::before, .scale-line::after { content: ""; position: absolute; top: -3px; width: 1px; height: 7px; background: var(--ink-mid); }
+.scale-line::before { left: 0; } .scale-line::after { right: 0; }
+
+/* ── 우: 사고 상세 ────────────────────────── */
+.detail-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.detail-head h2 { margin: 0; font-size: calc(16px * var(--t-k)); font-family: Jua, sans-serif; font-weight: 400; }
+.detail-head p { margin: 2px 0 0; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 2px; font-size: calc(11px * var(--t-k)); font-weight: 700;
+  margin-left: auto; flex: none;
+}
+.badge.resolved { background: rgba(47, 143, 109, .14); color: var(--ok); }
+:root[data-ui="dark"] .badge.resolved { background: rgba(95, 201, 160, .16); }
+/* 노랑 — 겨자색(#c8912a)은 탁하고, 호박색(#d97706)은 주황에 가까워 조난 빨강과 구분이 안 됐다.
+   관제 웹에서만 채도 높은 금빛 노랑으로 바꾼다(색상각 32° → 45°, 빨강 0° 에서 멀어진다).
+   rgb 도 토큰으로 두어 반투명 바탕까지 같은 색에서 나오게 한다. */
+:root { --warn: #cf9a00; --warn-rgb: 207, 154, 0; }
+/* 패널 바탕 — 공용 토큰(#f4f6f8)이 칙칙해 관제 웹에서만 밝힌다. 흰 카드와는 여전히 구분된다. 심해(다크)는 그대로 */
+:root { --bg: #f9fafb; }
+/* 긴급도 '안전'은 초록(--ok). 반투명 칸·테두리에 쓰도록 rgb 도 둔다 — 조난 빨강 · 긴급 노랑 · 안전 초록 */
+:root { --ok-rgb: 47, 143, 109; }
+:root[data-ui="dark"] { --ok-rgb: 95, 201, 160; }
+:root[data-ui="dark"] { --warn: #facc15; --warn-rgb: 250, 204, 21; }
+/* 모서리 — 둥근 카드가 AI 가 만든 화면처럼 보여 관제 웹은 거의 직각으로 한다(2026-09-15). 완전한 직각은 너무 딱딱했다.
+   공용 토큰(10 · 14 · 20px)을 2 · 3 · 4px 로 덮고, 버튼·메뉴·배지·알약 모양에 직접 적은 반경도 2px 로 맞췄다.
+   켜고 끄는 스위치 · 지도 번호 동그라미 · 스크롤바 · 원형 점(50%)만 둥글게 둔다. kiosk 는 공용 값을 그대로 쓴다 */
+:root { --r-sm: 2px; --r: 3px; --r-lg: 4px; }
+/* 선택 안 된 카드가 긴급도 색을 섞을 회색(아래 --urg-mute). 짙으면 빨강·노랑·초록이 한 덩어리로 보인다 */
+:root { --urg-mute-base: #c9cfd4; }
+:root[data-ui="dark"] { --urg-mute-base: #3a4a56; }
+/* 통계 차트 색 — 막대에만 쓰고 글자에는 쓰지 않는다. 한 계열은 --chart-one, 나머지는 --chart-rest.
+   긴급도(조난 · 긴급 · 안전)는 색각 검사(dataviz validate_palette)를 통과한 값이다.
+   라이트는 노랑의 흰 바탕 대비가 낮고, 다크는 노랑·빨강의 적록색약 구분이 경계선이라 늘 이름·값을 함께 적는다 */
+:root { --chart-one: var(--sea-ink); --chart-rest: #b7c0c7; --chart-d: #d94040; --chart-u: #cf9a00; --chart-s: #2f8f6d; }
+:root[data-ui="dark"] { --chart-one: var(--foam); --chart-rest: #4a5a66; --chart-d: #d84b4b; --chart-u: #b8890b; --chart-s: #34a07a; }
+/* 지도 확대·축소 버튼 — Leaflet 기본 CSS 가 4px·2px 반경을 준다. 같은 선택자를 뒤에 적어 덮는다 */
+.leaflet-bar, .leaflet-bar a, .leaflet-bar a:first-child, .leaflet-bar a:last-child,
+.leaflet-touch .leaflet-bar a:first-child, .leaflet-touch .leaflet-bar a:last-child,
+.leaflet-popup-content-wrapper, .leaflet-tooltip { border-radius: 2px; }
+.badge.warn { background: rgba(var(--warn-rgb), .16); color: var(--warn); }
+.badge.cancel { background: var(--surface-2); color: var(--ink-dim); }
+
+/*
+ * 패널 안의 값은 <b>모두 같은 줄 모양</b>을 쓴다 — 이름 왼쪽, 값 오른쪽, 줄 사이에 가는 선 한 겹.
+ * 전에는 어떤 묶음은 테두리 두른 상자고 어떤 것은 맨바닥이라, 같은 종류의 값이 자리마다 다르게
+ * 보였다. 구분은 섹션 사이의 가로줄(.inc-sec)이 맡고, 상자는 쓰지 않는다(2026-09-18).
+ */
+.facts { display: flex; flex-direction: column; margin-bottom: 0; }
+.fact { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.facts .fact:last-child { border-bottom: 0; }
+/* 항목 이름은 11.5px 중간 회색으로 통일한다. 10px 옅은 회색은 흰 바탕에서 명암비 2.6:1 이라 안 읽혔다(2026-09-18) */
+.fact dt { margin: 0 0 2px; font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid); }
+.fact dd { margin: 0; font-size: calc(15px * var(--t-k)); font-weight: 700; }
+.fact dd small { font-size: calc(11.5px * var(--t-k)); font-weight: 400; color: var(--ink-mid); }
+
+.section-label {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 0 0 8px;
+}
+.section-label h3 { margin: 0; font-size: calc(12px * var(--t-k)); font-weight: 700; }
+
+/* 사고 유형 · 종결 (§9.20 · §9.21) */
+.inc-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.inc-type { display:flex; align-items:center; gap:8px; font-size: calc(13px * var(--t-k)); }
+.urg-tag { font-size: calc(10px * var(--t-k)); font-weight:800; letter-spacing:.02em; padding:3px 8px; border-radius:2px; flex:none; }
+.urg-d { background:color-mix(in srgb,var(--alert) 15%,transparent); color:var(--alert); }
+.urg-u { background:color-mix(in srgb,var(--warn) 20%,transparent); color:var(--warn); }
+.inc-dsc { font-size: calc(11px * var(--t-k)); color:var(--ink-dim); }
+/* 종결 처리 — 상태 배지와 헷갈리지 않게 확실한 버튼 모양. 되돌리기 어려운 동작이라 빨강 */
+.btn-resolve { appearance:none; cursor:pointer; font:inherit; font-size: calc(12px * var(--t-k)); font-weight:700; padding:7px 14px;
+  border-radius:2px; border:1.5px solid var(--alert); background:var(--surface); color:var(--alert);
+  transition: background .15s, color .15s; }
+.btn-resolve:hover { background:var(--alert); color:#fff; }
+.btn-resolve:active { transform: translateY(1px); }
+.btn-resolve:focus-visible { outline:2px solid var(--buoy); outline-offset:2px; }
+.inc-closed { font-size: calc(11px * var(--t-k)); color:var(--ink-dim); }
+
+/* 사고 사진 두 장 — 영상은 받지 않는다. 감지(신고) 순간과 최신 프레임을 따로 본다.
+   앞은 "무엇을 보고 사고로 판단했나", 뒤는 "지금 배 위가 어떤가"다. */
+.shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.shot { margin: 0; min-width: 0; }
+/* 진짜 사진 칸 (2026-09-21).
+   비율은 그대로 4:3 — 카메라가 그 비율로 찍는다. 사진이 칸보다 크면 가운데를 채워 자른다 */
+.shot-img {
+  display: block; width: 100%; aspect-ratio: 4 / 3; margin-bottom: 5px;
+  border-radius: var(--r-sm); overflow: hidden;
+  border: 1px solid var(--line); background: var(--surface-2);
+  cursor: zoom-in;
+}
+.shot-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.shot-img:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+/* 아직 안 온 칸 — 빈 상자를 사진처럼 칠하지 않는다. 비어 있다는 것이 그대로 보여야 한다 */
+.shot-img.is-wait { display: grid; place-items: center; cursor: default; border-style: dashed; }
+.shot-img.is-wait span { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.shot figcaption { display: flex; flex-direction: column; gap: 1px; }
+.shot figcaption b { font-size: calc(11.5px * var(--t-k)); }
+.shot figcaption .mono { font-size: calc(10.5px * var(--t-k)); color: var(--ink-dim); }
+
+/* 영상 그만 받기 — 사진 바로 아래 전체 폭. 종결 처리(빨강)보다 한 단계 약한 보조 버튼 */
+.btn-stop-video {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k)); font-weight: 700;
+  display: block; width: 100%; padding: 8px 12px; margin: 2px 0 14px;
+  border-radius: 2px; border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink);
+  transition: background .15s, border-color .15s;
+}
+.btn-stop-video:hover { background: var(--surface-2); border-color: var(--ink-mid); }
+.btn-stop-video:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.video-stopped { margin: 2px 2px 14px; font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim); }
+
+/* ── 데모 조작 ────────────────────────────── */
+.demo-bar {
+  position: fixed; z-index: 50; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 14px; border-radius: 2px;
+  font-size: calc(11px * var(--t-k)); color: var(--ink-dim);
+}
+.demo-bar kbd {
+  font-family: "JetBrains Mono", monospace; font-size: calc(10px * var(--t-k));
+  padding: 2px 6px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface-2); color: var(--ink-mid);
+}
+
+.mascot { width: 25px; height: 25px; flex: none; }
+@keyframes bob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
+.bobbing { animation: bob 3.4s ease-in-out infinite; transform-origin: center bottom; }
+@keyframes ping { 0% { r: 9; opacity: .5; } 100% { r: 28; opacity: 0; } }
+.ping { animation: ping 2.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .bobbing, .ping { animation: none; } }
+
+
+/* 빈 상태 — 그냥 비워 두면 고장으로 읽힌다.
+   높이는 사고 카드 한 장(50px)과 같다. 여백으로 키우면 목록에 아무것도 없을 때
+   빈 칸이 화면에서 제일 큰 덩어리가 되어, 없다는 사실보다 그 상자가 먼저 눈에 든다.
+   글이 길어 줄이 늘면 그때만 늘어난다(min-height). */
+.empty {
+  min-height: 50px;
+  display: grid; align-content: center;
+  padding: 6px 12px; text-align: center;
+  border: 1px dashed var(--line-firm); border-radius: var(--r-sm);
+  color: var(--ink-dim); font-size: calc(12px * var(--t-k)); line-height: 1.4;
+}
+/* 줄 간격만 조인다. 글자 크기는 그대로 — 빈 목록이라고 읽기 어려워질 이유는 없다 */
+.empty b { display: block; color: var(--ink-mid); font-size: calc(13px * var(--t-k)); line-height: 1.25; }
+
+/* ══════ 우측 탭 ══════ */
+.dtabs {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;
+  padding: 3px; margin-bottom: 14px;
+  border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line);
+}
+.dtabs button {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k));
+  padding: 8px 2px; border-radius: 2px; background: transparent; color: var(--ink-mid);
+}
+.dtabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
+.dtabs button:disabled { opacity: .35; cursor: default; }
+.dtabs button:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+
+/* ── 관측값 · 제원 행 (선내 단말과 같은 규칙) ── */
+.readings { display: flex; flex-direction: column; }
+.reading {
+  display: grid; grid-template-columns: 1fr auto; gap: 3px 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--line);
+}
+.readings .reading:last-child { border-bottom: 0; }
+.reading-label { font-size: calc(12px * var(--t-k)); color: var(--ink-mid); }
+.reading-value { font-size: calc(15px * var(--t-k)); font-weight: 700; text-align: right; }
+.reading-value small { font-size: calc(11.5px * var(--t-k)); font-weight: 400; color: var(--ink-mid); margin-left: 1px; }
+/* 값만 보이면 3개월 전 값을 오늘 값으로 읽는다 (계획.md §9.18). 출처·시각을 항상 붙인다. */
+.reading-meta { grid-column: 1 / -1; font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid); }
+.reading.is-stale .reading-meta { color: var(--warn); }
+/* 값에 딸린 정보(최대 파고·풍향·만조) — 시각 줄과 같은 줄 오른쪽, 값 바로 아래에 둔다 */
+.reading.has-detail .reading-meta { grid-column: 1; }
+.reading-detail { grid-column: 2; font-size: calc(12px * var(--t-k)); color: var(--ink-mid); text-align: right; white-space: nowrap; }
+
+.pill { display: inline-block; padding: 2px 9px; border-radius: 2px; font-size: calc(11px * var(--t-k)); font-weight: 700; }
+.pill.ok { background: rgba(47, 143, 109, .14); color: var(--ok); }
+.pill.warn { background: rgba(var(--warn-rgb), .16); color: var(--warn); }
+.pill.bad { background: rgba(217, 64, 64, .14); color: var(--alert); }
+
+/* 참고 문구만 옅은 회색을 유지한다 — 판단에 쓰는 값이 아니라 근거·단서다 */
+.src-note { margin: 8px 2px 0; font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim); line-height: 1.6; }
+
+/* 선박 탭 사고 이력 — 한 배에 여러 건. 보고 있는 건은 선박 카드와 같은 방식으로 표시한다 */
+.hist { margin-top: 16px; }
+.hist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+/* 한 줄 = 테두리 상자 안에 [본문 버튼 | 지도 스위치]. 긴급도 토큰은 지도 번호 색에 쓴다 */
+.hist-item {
+  --urg-rgb: 133, 153, 159; --urg-c: var(--ink-dim);
+  display: flex; align-items: center;
+  border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface);
+  transition: border-color .15s;
+}
+.hist-item[data-urg="distress"] { --urg-rgb: 217, 64, 64;  --urg-c: var(--alert); }
+.hist-item[data-urg="urgency"]  { --urg-rgb: var(--warn-rgb); --urg-c: var(--warn); }
+.hist-item:hover { border-color: var(--line-firm); }
+.hist-item.is-picked { border-color: var(--pick-fill); }
+/* 선택은 네 변 같은 테두리 + 바깥 링. 한쪽만 굵게 하지 않는다 */
+.hist-item.is-current { border-color: var(--buoy); box-shadow: 0 0 0 3px rgba(226, 100, 58, .12); }
+.hist-row {
+  appearance: none; border: 0; background: none; cursor: pointer; font: inherit; text-align: left;
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 4px 8px 10px; border-radius: var(--r-sm); color: var(--ink); font-size: calc(12px * var(--t-k));
+}
+.hist-row:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+/* 유형이 윗줄, 시각이 아랫줄. 한 줄에 다 세우면 좁은 패널에서 유형부터 잘린다 */
+.hist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hist-row b { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-row .badge { flex: none; margin-left: 0; }
+/* 이력 줄의 지도 표시 — 목록 카드와 같은 눈이다(components/MapEye.tsx) */
+.hist-pick {
+  flex: none; appearance: none; border: 0; background: none; cursor: pointer;
+  display: grid; place-items: center; padding: 6px 8px; border-radius: 2px;
+  color: var(--ink-dim);
+}
+.hist-pick[aria-checked="true"] { color: var(--sea-ink); }
+.hist-pick[aria-checked="false"] .eye { opacity: .55; }
+.hist-pick:hover { background: var(--surface-2); color: var(--ink); }
+.hist-pick:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+.hist-when { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+
+/* 사고 탭 — 선박을 골랐을 때 사고가 여러 건이면 카드부터. 진행 중은 흰 바탕, 종결은 회색(왼쪽 목록과 같은 규칙) */
+.dtab-count { margin-left: 5px; font-size: calc(11px * var(--t-k)); font-weight: 700; opacity: .7; }
+.vinc-sum { margin: 0 2px 8px; font-size: calc(12px * var(--t-k)); color: var(--ink-mid); }
+.vinc-sum b { color: var(--ink); }
+.vinc-list { display: flex; flex-direction: column; gap: 7px; }
+/* 카드 = 본문 버튼 + 오른쪽 지도 스위치 칸. 왼쪽 사고 카드와 같은 구성이다 */
+.vinc-card {
+  --urg-rgb: 133, 153, 159; --urg-c: var(--ink-dim);
+  display: flex; align-items: stretch; overflow: hidden;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+  transition: border-color .15s;
+}
+.vinc-card[data-urg="distress"] { --urg-rgb: 217, 64, 64;  --urg-c: var(--alert); }
+.vinc-card[data-urg="urgency"]  { --urg-rgb: var(--warn-rgb); --urg-c: var(--warn); }
+.vinc-card.is-live { background: var(--surface); border-color: var(--line-firm); }
+.vinc-card:hover { border-color: var(--sea-ink); }
+.vinc-card.is-picked { border-color: var(--pick-fill); }
+.vinc-body {
+  appearance: none; border: 0; background: none; cursor: pointer; font: inherit; color: inherit;
+  text-align: left; flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 10px 12px;
+}
+.vinc-body:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; border-radius: var(--r-sm); }
+.vinc-top .inc-no { flex: none; }
+
+/* 지도 스위치 칸 — 꺼짐은 옅은 긴급도 색, 켜짐은 진한 칸에 흰 스위치 */
+/* 공통 .inc-pick 규칙이 왼쪽 여백 10px·왼쪽 테두리를 줘서 스위치가 칸 가운데서 5px 밀렸다.
+   여백은 0 으로, 칸 경계선은 폭을 먹지 않는 안쪽 그림자로 긋는다 */
+.vinc-card .inc-pick {
+  flex: none; width: 54px; padding: 4px 0;
+  border-left: 0; box-shadow: inset 1px 0 0 rgba(var(--urg-rgb), .25);
+  background: var(--urg-mute);
+  transition: background .15s;
+}
+.vinc-card .inc-pick:hover { background: rgba(var(--urg-rgb), .28); }
+.vinc-card .inc-pick em { color: var(--urg-c); }
+.vinc-card .inc-pick .sw-track { background: rgba(255, 255, 255, .7); border-color: var(--urg-c); }
+.vinc-card.is-picked .inc-pick { background: var(--pick-fill); box-shadow: none; }
+.vinc-card.is-picked .inc-pick em { color: #fff; }
+.vinc-card .inc-pick[aria-checked="true"] .sw-track { background: #fff; border-color: #fff; }
+.vinc-card .inc-pick[aria-checked="true"] .sw-knob { background: var(--urg-c); box-shadow: none; }
+.vinc-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.vinc-top b { flex: 1; min-width: 0; font-size: calc(13px * var(--t-k)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vinc-when { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.vinc-foot { display: flex; justify-content: space-between; gap: 8px; font-size: calc(11px * var(--t-k)); color: var(--ink-mid); }
+
+.inc-card-foot .inc-surv, .vinc-foot > span:first-child { flex: none; }
+.vinc-back {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k));
+  margin: 0 0 10px; padding: 5px 11px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink-mid);
+}
+.vinc-back:hover { color: var(--ink); border-color: var(--sea-ink); }
+.vinc-back:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+/* ── 해양 정보 — 평소엔 한 줄로 접어 두고, 보고 싶을 때 연다 ── */
+/*
+ * 해양 정보는 패널 맨 아래에 있다. 위에 붙어 있으면 상황을 적는 칸들과 한 덩어리로
+ * 읽힌다 — 이건 근거지 상황이 아니다. 줄을 긋고 띄워 위와 갈라 둘다(2026-09-18).
+ */
+.ocean {
+  /* 구분선은 패널 폭을 꺼끓 가로질러야 한다 — 양쪽이 띄면 줄이 아니라 상자 테두리로 보인다.
+     .pane-pad 의 16px 안쪽 여백을 읍수로 되돌리고 같은 만큼 다시 넣어 글은 제자리에 둔다 */
+  margin: 20px -16px 0;
+  padding: 18px 16px 0;
+  border-top: 1px solid var(--line);
+}
+/* 다른 칸처럼 상자를 두르지 않는다 — 위의 구분선이 이미 여기서부터라고 말하고 있다 */
+.ocean > .ocean-toggle { padding-left: 0; padding-right: 0; }
+.ocean > .ocean-body { padding: 0; border-top: 0; }
+.ocean-toggle {
+  appearance: none; border: 0; background: none; font: inherit; cursor: pointer;
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; text-align: left; font-size: calc(12px * var(--t-k)); color: var(--ink-mid);
+}
+.ocean-toggle b { color: var(--ink); font-weight: 700; }
+.ocean-toggle:hover { color: var(--ink); }
+.ocean-toggle:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; border-radius: var(--r-sm); }
+.ocean-i {
+  flex: none; width: 16px; height: 16px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  border: 1px solid currentColor; font-size: calc(10px * var(--t-k)); font-weight: 700; font-style: normal; line-height: 1;
+}
+.ocean-sub { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.ocean-caret { margin-left: auto; font-size: calc(11px * var(--t-k)); transition: transform .15s; }
+.ocean.is-open .ocean-caret { transform: rotate(180deg); }
+.ocean-body { padding: 0 10px 10px; border-top: 1px solid var(--line); }
+.ocean-body .section-label { margin-top: 10px; }
+/* 기준 지점 한 줄은 상자 오른쪽 아래에 */
+.ocean-body .src-note { text-align: right; }
+/* 좁은 화면에서는 상세 패널이 전체 폭으로 내려온다. 안전·항해를 위아래로 쌓으면 한 줄이 너무 길어 나란히 둔다 */
+@media (max-width: 1200px) {
+  .ocean-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; align-items: start; }
+  .ocean-body .src-note { grid-column: 1 / -1; }
+}
+/* 반으로 나누면 값이 안 들어갈 만큼 좁으면 다시 한 줄에 하나 */
+@media (max-width: 640px) {
+  .ocean-body { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ══════ 카메라 기록 모달 ══════ */
+/* 지도 오버레이가 1200 이다. 그 아래에 두면 리포트가 범례·슬라이더에 가린다. */
+.modal {
+  position: fixed; inset: 0; z-index: 2000;
+  display: grid; place-items: center; padding: 24px;
+  background: rgba(4, 16, 26, .74); backdrop-filter: blur(3px);
+}
+.modal[hidden] { display: none; }
+
+/* ══════ 슈퍼 관리자 — ADMIN 계정 승인 ══════ */
+.admin-view { padding: 26px 22px; overflow: auto; height: calc(100vh - 57px); }
+.admin-wrap { max-width: 880px; margin: 0 auto; }
+.admin-wrap > h2 { margin: 0 0 3px; font-size: calc(19px * var(--t-k)); font-family: Jua, sans-serif; font-weight: 400; }
+.admin-wrap > p { margin: 0 0 20px; font-size: calc(12px * var(--t-k)); color: var(--ink-mid); line-height: 1.7; }
+
+.req {
+  display: grid; grid-template-columns: 38px 1fr auto; gap: 13px; align-items: center;
+  padding: 13px 15px; margin-bottom: 8px;
+  border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line);
+}
+.req h3 { margin: 0; font-size: calc(13px * var(--t-k)); font-weight: 700; }
+.req p { margin: 2px 0 0; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.req-act { display: flex; gap: 6px; }
+.req[data-done] { opacity: .72; }
+.req[data-done] .req-act { display: none; }
+.req-done { font-size: calc(12px * var(--t-k)); font-weight: 700; }
+.req-done.yes { color: var(--ok); }
+.req-done.no  { color: var(--ink-dim); }
+
+/*
+ * 삭제 — <b>버튼 모양</b>을 쓴다. 글자만 두었더니 옆의 '승인됨'과 같은 등급으로 읽혀
+ * 상태인지 누를 수 있는 것인지가 안 갈렸다 — 누를 수 있는 것은 누를 수 있게 생겼어야 한다.
+ * 다만 자주 할 일은 아니라 평소에는 회색 테두리고, 손이 올라갔을 때만 붉어진다(2026-09-18).
+ */
+.req-del {
+  appearance: none; cursor: pointer; font: inherit;
+  font-size: calc(11px * var(--t-k)); font-weight: 700; white-space: nowrap;
+  padding: 5px 11px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink-mid);
+}
+.req-del:hover { color: var(--alert); border-color: rgba(217, 64, 64, .55); background: rgba(217, 64, 64, .06); }
+.req-del:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.req-del:disabled { opacity: .45; cursor: default; }
+.req-del:disabled:hover { color: var(--ink-mid); border-color: var(--line-firm); background: var(--surface); }
+/* 상태 글자와 버튼은 높이가 다르다 — 위아래 가운데로 맞추지 않으면 글자가 늘어난다 */
+.req-act { align-items: center; }
+.req-act .req-done { margin-right: 6px; }
+
+.btn {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k));
+  padding: 6px 13px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink);
+}
+.btn.primary { background: var(--sea-ink); border-color: var(--sea-ink); color: #fff; font-weight: 700; }
+:root[data-ui="dark"] .btn.primary { background: var(--foam); border-color: var(--foam); color: var(--abyss); }
+.btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+
+/* ══════ 지도 — 수신 상태 · 빈 상태 ══════ */
+/* 지도 좌상단 컨트롤 — 세로로 쌓고 폭·높이를 맞춘다.
+   크기가 다르면 두 개가 서로 다른 종류의 물건처럼 보인다. */
+.map-ui.tl { display: flex; flex-direction: column; gap: 8px; width: 244px; }
+
+
+.map-btn {
+  appearance: none; font: inherit; cursor: pointer;
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; min-height: 40px; padding: 0 13px;
+  font-size: calc(11.5px * var(--t-k)); font-weight: 700; color: var(--ink); text-align: left;
+}
+.map-btn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-btn:hover:not(:disabled) { border-color: var(--sea-ink); }
+.map-btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.map-btn:disabled { cursor: default; color: var(--ink-dim); font-weight: 400; }
+.map-btn-ico { font-style: normal; font-size: calc(13px * var(--t-k)); color: var(--ink-dim); flex: none; }
+.map-btn.map-live-go { padding: 8px 13px; }
+.map-live-go > span { white-space: normal; }
+.map-live-go b { display: block; color: var(--alert); }
+.map-live-go small { display: block; margin-top: 2px; font-size: inherit; font-weight: 400; color: var(--ink-mid); }
+
+.map-mode-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-dim); flex: none; }
+.map-mode[data-live="1"] { color: var(--alert); }
+.map-mode[data-live="1"] .map-mode-dot { background: var(--alert); box-shadow: 0 0 0 3px rgba(217, 64, 64, .18); }
+
+/* 평시에는 지도에 그릴 좌표 자체가 없다. 빈 지도를 그냥 두면 고장으로 읽힌다. */
+.map-empty {
+  position: absolute; z-index: 1200; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  max-width: 340px; padding: 16px 18px; text-align: center;
+  font-size: calc(12px * var(--t-k)); color: var(--ink-mid); line-height: 1.75;
+}
+.map-empty b { display: block; color: var(--ink); font-size: calc(13px * var(--t-k)); margin-bottom: 5px; }
+.map-empty-go { display: block; margin: 10px auto 0; }
+
+/* ══════ 설정 시트 ══════ */
+.sheet {
+  position: fixed; inset: 0; z-index: 1900;
+  display: grid; place-items: center; padding: 24px;
+  background: rgba(4, 16, 26, .7); backdrop-filter: blur(5px);
+}
+.sheet-card {
+  width: min(520px, 100%); border-radius: var(--r-lg); overflow: hidden;
+  background: var(--surface); border: 1px solid var(--line-firm);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .7);
+}
+.sheet-top { display: flex; align-items: center; gap: 10px; padding: 15px 19px; border-bottom: 1px solid var(--line); }
+.sheet-top h3 { margin: 0; font-size: calc(16px * var(--t-k)); font-family: Jua, sans-serif; font-weight: 400; }
+.sheet-top .icon-btn { margin-left: auto; }
+.sheet-body { padding: 19px; display: grid; gap: 17px; }
+.set-sec h4 { margin: 0 0 10px; font-size: calc(12px * var(--t-k)); font-weight: 700; }
+.set-row { display: grid; grid-template-columns: 66px 1fr; align-items: center; gap: 12px; margin-bottom: 9px; }
+.set-label { font-size: calc(12px * var(--t-k)); color: var(--ink-mid); }
+.pick { display: flex; gap: 4px; flex-wrap: wrap; }
+.pick-btn {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k));
+  padding: 7px 12px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface-2); color: var(--ink-mid);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.pick-btn:hover { color: var(--ink); }
+.pick-btn[aria-pressed="true"] { background: var(--sea-ink); border-color: var(--sea-ink); color: #fff; font-weight: 700; }
+:root[data-ui="dark"] .pick-btn[aria-pressed="true"] { background: var(--foam); border-color: var(--foam); color: var(--abyss); }
+.pick-btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.pick-btn i { width: 9px; height: 9px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, .25); }
+.set-hint { margin: 8px 0 0; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); line-height: 1.7; }
+.set-hint b { color: var(--ink-mid); font-weight: 700; }
+
+@media (max-width: 1200px) {
+  .layout { grid-template-columns: 1fr; grid-template-rows: auto 440px auto; height: auto; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   W-02 · W-03 — 부표 위치 실측/추정 통합 표시(0장)
+   실측과 추정은 **형태로** 구분한다. 색만 다르게 하면 색약에서 사라지고,
+   흑백 인쇄(종료 리포트)에서도 사라진다.
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 위치 상태 배지 (0.1) ── */
+.pos-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px 3px 7px; border-radius: 2px;
+  font-size: calc(11px * var(--t-k)); line-height: 1.5; white-space: nowrap;
+  border: 1px solid var(--line-firm); background: var(--surface-2); color: var(--ink-mid);
+}
+/* 실측·추정 글자만 굵고 색이 달라 혼자 튀어 보였다. 나머지 글자와 같게 둔다 — 구분은 점 모양·테두리 색이 한다 */
+.pos-badge b { font-weight: inherit; color: inherit; }
+.pos-badge i {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+}
+/* 실측 = 채워진 원 */
+.pos-badge.is-measured { border-color: rgba(226, 100, 58, .5); background: rgba(226, 100, 58, .1); }
+.pos-badge.is-measured i { background: var(--buoy); }
+/* 추정 = 점선 빈 원 */
+.pos-badge.is-estimated { border-color: rgba(var(--warn-rgb), .55); background: rgba(var(--warn-rgb), .1); }
+.pos-badge.is-estimated i { background: transparent; border: 1.5px dashed var(--warn); }
+.pos-badge.is-none { opacity: .75; }
+.pos-badge.is-none i { background: transparent; border: 1.5px solid var(--ink-dim); }
+
+/* ── 파지 상태 배지 (0.2) — 위치와 독립이므로 모양을 일부러 다르게 한다 ── */
+.hold-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: var(--r-sm);
+  font-size: calc(11px * var(--t-k)); font-weight: 700; white-space: nowrap;
+  border: 1px solid var(--line-firm);
+}
+.hold-badge.is-held { background: rgba(47, 143, 109, .14); border-color: rgba(47, 143, 109, .45); color: var(--ok); }
+.hold-badge.is-unknown { background: rgba(217, 64, 64, .12); border-color: rgba(217, 64, 64, .5); color: var(--alert); }
+
+.state-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+/*
+ * 제목 줄 안에 들어간 배지 — 제목 오른쪽에 붙는다. 밑에 한 줄을 더 쓰면
+ * 정작 읽으려는 좌표가 그만큼 아래로 밀린다. 좌우로 길면 줄바꿈해 제목 아래로 내려간다.
+ */
+.section-label { flex-wrap: wrap; gap: 4px 10px; }
+.section-label .state-badges { margin: 0; justify-content: flex-end; min-width: 0; }
+.section-label:has(.state-badges) { align-items: center; }
+
+
+/* ── 긴급도 컬러 바 (신규 4) ── */
+.urg-bar { width: 3px; border-radius: 2px; flex: none; align-self: stretch; }
+.urg-bar.urg-d { background: var(--alert); }
+.urg-bar.urg-u { background: var(--warn); }
+
+/* ── W-02 사고 카드 ── */
+/*
+ * 왼쪽 목록 필터 — 상태는 밑줄 탭, 정렬은 그 아래 보조 줄.
+ * 거르는 것(탭)과 늘어놓는 것(보조 줄)을 모양으로 나눈다. 회색 상자는 두지 않는다 — 판 위에 틀이 하나 더 얹혀 무거웠다.
+ */
+.ftabs {
+  display: flex; gap: 18px; margin: 10px 0 0; padding: 0 2px;
+  border-bottom: 1px solid var(--line);
+}
+/* 선택 밑줄이 아래 구분선 위에 겹치도록 1px 끌어내린다 */
+.ftab {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(12px * var(--t-k));
+  margin-bottom: -1px; padding: 7px 0 8px;
+  border: 0; border-bottom: 2px solid transparent; background: none;
+  color: var(--ink-dim); white-space: nowrap;
+}
+.ftab:hover { color: var(--ink); }
+.ftab[aria-pressed="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--sea-ink); }
+.ftab:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; border-radius: 2px; }
+.ftab-count { margin-left: 3px; font-size: calc(11px * var(--t-k)); font-weight: 700; color: var(--ink-dim); }
+.ftab[aria-pressed="true"] .ftab-count { color: var(--sea-ink); }
+:root[data-ui="dark"] .ftab[aria-pressed="true"] { border-bottom-color: var(--foam); }
+:root[data-ui="dark"] .ftab[aria-pressed="true"] .ftab-count { color: var(--foam); }
+
+.fbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0 0 9px; padding: 7px 2px 0;
+  font-size: calc(11px * var(--t-k)); color: var(--ink-mid);
+}
+/* 정렬 — 기본 select 대신 직접 그린 메뉴(SortMenu). 버튼은 글자처럼 가볍게, 목록은 고른 것에 체크 */
+.fsort { position: relative; display: inline-flex; }
+.sort-btn {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(11.5px * var(--t-k)); font-weight: 700; color: var(--ink);
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 8px 4px 6px; margin-left: -6px;
+  border: 1px solid transparent; border-radius: 2px; background: none;
+  transition: background .12s, border-color .12s;
+}
+.sort-btn:hover, .sort-btn[aria-expanded="true"] { background: var(--surface); border-color: var(--line); }
+.sort-btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.sort-ico { font-weight: 400; color: var(--ink-dim); }
+.sort-caret {
+  width: 0; height: 0; margin-left: 1px;
+  border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-top: 4px solid var(--ink-dim);
+  transition: transform .15s;
+}
+.sort-btn[aria-expanded="true"] .sort-caret { transform: rotate(180deg); }
+/* 목록은 body 에 붙는다(SortMenu) — 패널 높이에 잘리지 않게 화면 기준으로 띄운다. 위치는 버튼에서 잰다 */
+.sort-menu {
+  position: fixed; z-index: 3000;
+  min-width: 148px; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--line-firm); border-radius: 2px;
+  box-shadow: 0 12px 28px -14px rgba(6, 19, 31, .38);
+}
+.sort-menu li {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 7px 9px; border-radius: 2px; cursor: pointer;
+  font-size: calc(12px * var(--t-k)); color: var(--ink-mid); white-space: nowrap;
+}
+.sort-menu li.is-hi { background: var(--surface-2); color: var(--ink); }
+.sort-menu li[aria-selected="true"] { color: var(--ink); font-weight: 700; }
+.sort-menu li b { font-size: calc(12px * var(--t-k)); color: var(--sea-ink); }
+:root[data-ui="dark"] .sort-menu li b { color: var(--foam); }
+.chip-toggle {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(11px * var(--t-k));
+  padding: 4px 10px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink-mid);
+}
+.chip-toggle[aria-pressed="true"] { background: var(--sea-ink); border-color: var(--sea-ink); color: #fff; font-weight: 700; }
+.chip-toggle:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.seg-live {
+  display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 2px;
+  font-style: normal; font-size: calc(10px * var(--t-k)); font-weight: 700;
+  background: var(--alert); color: #fff;
+}
+
+.inc-card {
+  appearance: none; cursor: pointer; font: inherit; text-align: left;
+  display: flex; gap: 9px; padding: 9px 10px;
+  border-radius: var(--r); border: 1px solid var(--line); background: var(--surface);
+}
+.inc-card:hover { border-color: var(--line-firm); }
+.inc-card:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+.inc-card-body { min-width: 0; flex: 1; }
+.inc-card-top { display: flex; align-items: center; gap: 6px; }
+.inc-card-top h3 {
+  margin: 0; min-width: 0; font-size: calc(13px * var(--t-k)); font-weight: 700;
+  display: flex; align-items: baseline; gap: 6px;
+}
+/* 배 이름은 절대 안 꺾는다. 자리가 모자라면 유형 쪽이 말줄임표로 줄어든다 */
+.inc-card-top h3 { white-space: nowrap; }
+/* 유형은 배 이름 바로 옆. 한 덩어리로 읽히되 굵기는 이름에 양보한다 */
+.inc-card-top h3 b {
+  font-size: calc(12px * var(--t-k)); font-weight: 400; color: var(--ink-mid);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.inc-card-when { margin: 1px 0 6px; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+/* 유형 · 부표 통신 · 부표 버튼 칩은 한 줄에 하나씩. 폭에 따라 한 줄에 붙었다 떨어졌다 하면 카드마다 모양이 달라진다 */
+.inc-card-badges { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.inc-card-foot {
+  display: flex; align-items: center; gap: 8px; margin-top: 7px;
+  padding-top: 6px; border-top: 1px dashed var(--line);
+  font-size: calc(11px * var(--t-k));
+}
+.inc-surv { font-weight: 700; color: var(--ink-mid); }
+.inc-surv.is-past { color: var(--alert); }
+
+/* ── 생존 잔여시간 (신규 1) ── */
+/* 상자를 벗긴다 — 이제 여기만 테두리를 두를 이유가 없다. 급한 정도는 막대와 숫자 색이 말한다 */
+.survival { margin: 0; }
+.survival .section-label { margin-bottom: 4px; }
+.survival-label { font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid); }
+/* 패널에서 제일 큰 숫자 — 이 칸이 1순위라는 것을 글자 크기로 말한다 */
+.survival-val { margin-left: auto; font-size: calc(21px * var(--t-k)); font-weight: 700; letter-spacing: -.01em; }
+.survival.is-past .survival-val { color: var(--alert); }
+.survival-track {
+  display: block; height: 5px; margin: 7px 0 6px;
+  border-radius: 2px; background: var(--surface-2); overflow: hidden;
+}
+.survival-track i {
+  display: block; height: 100%; border-radius: 2px;
+  background: var(--ok);
+}
+.survival-meta { font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid); }
+.survival-note { margin-top: 6px; }
+/* 급한 정도에 따라 한 가지 색 — 초록(여유) · 노랑(위험) · 빨강(긴급) */
+.survival.lv-warn .survival-track i { background: var(--warn); }
+.survival.lv-danger .survival-track i { background: var(--alert); }
+.survival.lv-warn .survival-val { color: var(--warn); }
+.survival.lv-danger .survival-val { color: var(--alert); }
+
+/* ── 좌표 DDM (신규 2) ── */
+/*
+ * 복사 버튼은 <b>좌표와 같은 줄</b>에 둔다. 이름 줄 오른쪽에 떠 있을 때는
+ * 왜 거기 있는지가 안 읽혔고(누르면 무엇이 복사되는지), 밑줄 좌표가 버튼 아래로
+ * 흘러들어 겹치는 느낌을 줌다 — 버튼을 그 값 옆으로 옥기고 숫자를 한 치수 줄였다(2026-09-18).
+ */
+.coord {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px;
+  align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line);
+}
+.inc-sec .coord:last-of-type { border-bottom: 0; }
+.coord-label { grid-row: 1; grid-column: 1 / -1; font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid); }
+.coord-val { grid-row: 2; grid-column: 1; font-size: calc(14px * var(--t-k)); font-weight: 700; }
+.coord-copy {
+  grid-row: 2; grid-column: 2; align-self: center;
+  appearance: none; cursor: pointer; font: inherit;
+  font-size: calc(11px * var(--t-k)); font-weight: 700; white-space: nowrap;
+  padding: 5px 10px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface-2); color: var(--ink-mid);
+}
+.coord-copy:hover { color: var(--ink); border-color: var(--sea-ink); }
+.coord-copy:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+/*
+ * 될 것이 됐음만 잠긐. 글자 수가 늘어 버튼 폭이 바뀜면 옆의 좌표가 밀리니
+ * 폭을 미리 잡아 둔다 — '복사'(2자) → '복사됨'(3자) 만큼이다.
+ */
+.coord-copy { min-width: calc(50px * var(--t-k)); text-align: center; }
+.coord-copy.is-copied { color: var(--ok); border-color: rgba(47, 143, 109, .55); background: rgba(47, 143, 109, .08); }
+.coord-copy:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+/* ── 신고 상태 ── */
+.report-state { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
+.rs-row {
+  display: grid; grid-template-columns: 62px auto 1fr; gap: 8px;
+  align-items: baseline; font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim);
+}
+.rs-row b { font-size: calc(13px * var(--t-k)); }
+.rs-row em { font-style: normal; font-size: calc(11.5px * var(--t-k)); text-align: right; }
+.rs-row.is-on { color: var(--ink); }
+.rs-row.is-on b { color: var(--ok); }
+
+/* ── 사고 탭 섹션 구분 — 위치 · 생존/해황 · 신고 · 수치 · 카메라 사이에 선을 긋는다 ──
+   여백은 섹션이 맡는다. 안쪽 요소의 바깥 여백이 제각각이면 선과의 간격이 들쭉날쭉해진다. */
+.inc-head { margin-bottom: 0; }
+/* 선은 패널 양 끝까지 — 패널 사이 세로선(.layout 의 1px 틈으로 비치는 --line)에 닿고, 굵기·색도 그와 같다.
+   패널 안쪽 여백(.pane-pad 16px)만큼 바깥으로 빼고, 내용은 같은 만큼 다시 들여 제자리에 둔다. */
+.inc-sec {
+  margin: 16px -16px 0; padding: 16px 16px 0;
+  border-top: 1px solid var(--line);
+}
+/* 섹션 끝에 붙는 한 줄 — 값이 아니라 그 값을 얼마나 믿을 수 있는지에 대한 단서다 */
+.sec-meta { margin: 8px 0 0; font-size: calc(11px * var(--t-k)); color: var(--ink-mid); }
+.inc-sec > :first-child { margin-top: 0; }
+.inc-sec > :last-child { margin-bottom: 0; }
+
+/* ── 표류 슬라이더 (신규 7) ── */
+.drift-box { max-width: 228px; }
+/* 글자를 한 단계 올리면 제목과 버튼이 꼺인다 — 상자도 같이 늘려 준다 */
+:root[data-text="big"] .drift-box { max-width: 268px; }
+/* 범례와 같은 접기. 제목 줄 전체가 버튼이다 */
+.drift-head {
+  appearance: none; border: 0; background: none; cursor: pointer; font: inherit; text-align: left;
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; margin-bottom: 6px;
+}
+.drift-head[aria-expanded="false"] { margin-bottom: 0; }
+.drift-head:hover .drift-label { color: var(--ink); }
+.drift-head:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.drift-label { font-size: calc(11px * var(--t-k)); font-weight: 700; }
+.drift-moved { margin-left: auto; font-size: calc(10px * var(--t-k)); color: var(--ink-dim); }
+.drift-slider.is-disabled { opacity: .6; }
+
+/* ── 지도 마커: 추정은 점선 (0.1) ── */
+.mk-buoy.is-estimated i {
+  background: transparent; border: 2px dashed var(--warn);
+  box-shadow: 0 0 0 8px rgba(242, 193, 78, .1);
+}
+.mk-buoy.is-estimated i::after { display: none; }
+.mk-buoy.is-estimated b { display: none; }
+.mk-buoy.is-held i { box-shadow: 0 0 0 8px rgba(47, 143, 109, .22); }
+
+/* 사람 추정 — 부표와 색을 달리한다. 마커가 둘 설 때 어느 쪽이 사람인지 즉시 읽혀야 한다. */
+.mk-person { width: 26px; height: 26px; position: absolute; }
+.mk-person i {
+  position: absolute; inset: 0; margin: auto; width: 20px; height: 20px; border-radius: 50%;
+  background: transparent; border: 2px dashed #d94040;
+  box-shadow: 0 0 0 7px rgba(217, 64, 64, .1);
+}
+.mk-person b {
+  position: absolute; inset: 0; margin: auto; width: 6px; height: 6px;
+  border-radius: 50%; background: #d94040;
+}
+/* ── 종료 리포트 (신규 5) ── */
+.report-modal {
+  width: min(720px, 100%); max-height: 100%; overflow: auto;
+  border-radius: var(--r-lg); background: var(--surface);
+  border: 1px solid var(--line-firm); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .75);
+}
+.report-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px; border-bottom: 1px solid var(--line);
+}
+.report-head h2 { margin: 0; font-size: calc(14px * var(--t-k)); font-family: Jua, sans-serif; font-weight: 400; }
+.report-actions { margin-left: auto; display: flex; gap: 6px; }
+
+.report-sheet { padding: 22px 24px 24px; }
+
+/*
+ * ── 리포트 ──
+ * 전에는 dl·ul 여섯 덩이가 전부 11.5px 로 이어져, 펼쳐 놓아도 무엇을 말하는 문서인지
+ * 안 읽혔다. 읽는 사람이 먼저 묻는 것은 "얼마나 걸렸나"와 "어디서 늦었나" 둘이다.
+ * 그 둘만 크게 두고 나머지는 근거로 눌러 둔다(2026-09-17).
+ */
+.rp-hero { padding-bottom: 16px; margin-bottom: 4px; border-bottom: 2px solid var(--ink); }
+.rp-eyebrow { margin: 0; font-size: calc(10.5px * var(--t-k)); letter-spacing: .04em; color: var(--ink-dim); }
+.rp-ship {
+  margin: 6px 0 0; font-size: calc(22px * var(--t-k)); font-weight: 700; line-height: 1.2; color: var(--ink);
+  display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+}
+.rp-ship em {
+  font-style: normal; font-size: calc(11px * var(--t-k)); font-weight: 400; color: var(--ink-dim);
+  font-family: var(--mono, ui-monospace, monospace);
+}
+.rp-kind { margin: 3px 0 0; font-size: calc(12.5px * var(--t-k)); color: var(--ink-mid); }
+.rp-kind span { color: var(--ink-dim); font-size: calc(11px * var(--t-k)); }
+/* 문서 전체에서 제일 큰 숫자 하나. 여기가 결론이다 */
+.rp-took { margin: 14px 0 0; font-size: calc(13px * var(--t-k)); color: var(--ink-mid); }
+.rp-took b {
+  font-size: calc(34px * var(--t-k)); font-weight: 700; line-height: 1; color: var(--ink);
+  margin-right: 7px; font-variant-numeric: tabular-nums;
+}
+.rp-span { margin: 5px 0 0; font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim); }
+
+/*
+ * 섹션 제목이 10.5px 옆은 회색이라 본문보다 흐려 — 문서의 목차 구실을 못 했다.
+ * 제목은 진하게, 위에 가로줄을 긋고 사이를 더 띄운다. 종이로 내도 덩어리가 갈린다(2026-09-18).
+ */
+.rp-sec { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); }
+.rp-sec h3 {
+  margin: 0 0 10px; font-size: calc(11px * var(--t-k)); font-weight: 700; letter-spacing: .02em;
+  color: var(--ink);
+}
+
+/*
+ * 대응 단계 — 한 칸이 "언제 닿았나"(윗줄)와 "그때 무슨 일이 있었나"(아랫줄)를 함께 적는다.
+ * 따로 두었던 경위를 이 안으로 집어넣었다 — 같은 시각을 두 번 읽힌 이유가 없다(2026-09-18).
+ */
+.rp-steps { list-style: none; margin: 0; padding: 0; }
+.rp-steps > li {
+  display: grid; grid-template-columns: 18px 1fr auto auto; gap: 2px 10px;
+  align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line);
+  font-size: calc(12px * var(--t-k));
+}
+.rp-steps > li:last-child { border-bottom: 0; }
+.rp-no {
+  font-style: normal; font-size: calc(10.5px * var(--t-k)); font-weight: 700; color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+.rp-step-name { font-weight: 700; color: var(--ink); }
+.rp-step-at { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.rp-step-gap {
+  min-width: 62px; text-align: right; color: var(--ink-dim);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* 아직 닿지 않은 단계는 물러난다. 빈 칸이 눈을 끄면 닿은 단계가 안 보인다 */
+.rp-steps > li.is-miss .rp-step-name,
+.rp-steps > li.is-miss .rp-step-at { color: var(--ink-dim); font-weight: 400; }
+
+/* 그 단계 안에서 실제로 있었던 일. 단계 이름 아래에 들여쓴다 */
+.rp-step-log { grid-column: 2 / -1; list-style: none; margin: 5px 0 0; padding: 0; }
+.rp-step-log > li {
+  display: grid; grid-template-columns: 62px 1fr; gap: 1px 10px;
+  padding: 3px 0; font-size: calc(11.5px * var(--t-k));
+}
+.rp-step-log b { font-weight: 400; color: var(--ink-dim); }
+.rp-step-log span { color: var(--ink-mid); }
+.rp-step-log em { grid-column: 2; font-style: normal; color: var(--ink-dim); }
+
+/* 상황 한 문단 — 문서에서 유일하게 줄글로 읽히는 칸이라 좀 크게 */
+.rp-brief p { margin: 0; font-size: calc(13px * var(--t-k)); line-height: 1.75; color: var(--ink-mid); }
+.rp-brief p b { color: var(--ink); font-weight: 700; }
+
+/* 근거 — 두 칸씩 접히는 목록. 이름은 흐리게, 값은 진하게 */
+.rp-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0 20px; margin: 0; }
+.rp-rows > div {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 0; border-bottom: 1px solid var(--line); font-size: calc(11.5px * var(--t-k));
+}
+.rp-rows dt { flex: none; min-width: 78px; color: var(--ink-mid); }
+.rp-rows dd { margin: 0; font-weight: 700; color: var(--ink); }
+.rp-none { margin: 4px 0 0; font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim); }
+
+/* 경위 — 시각을 왼쪽 한 칸에 고정해 세로로 읽히게 한다 */
+.rp-log { list-style: none; margin: 0; padding: 0; font-size: calc(11.5px * var(--t-k)); }
+.rp-log li {
+  display: grid; grid-template-columns: 66px 1fr; gap: 3px 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--line);
+}
+.rp-log li:last-child { border-bottom: 0; }
+.rp-log b { font-weight: 400; color: var(--ink-mid); }
+.rp-log span { font-weight: 700; color: var(--ink); }
+.rp-log em { grid-column: 2; font-style: normal; font-size: calc(11px * var(--t-k)); color: var(--ink-mid); }
+
+/*
+ * 현장 경로 지도. 배·감지 지점·부표 최종과 부표가 간 길을 한 칸에 담는다.
+ * 종이로 낼 때 비율이 깔때깔때하면 거리감을 잃어 높이를 고정한다.
+ */
+.rp-map { position: relative; height: 300px; border: 1px solid var(--line-firm); border-radius: var(--r-sm); overflow: hidden; }
+.rp-map-canvas { position: absolute; inset: 0; }
+/* 지도는 모양만 말한다 — 그 모양이 무슨 뜻인지는 바로 밑에서 글로 말해 준다 */
+.rp-legend {
+  list-style: none; display: flex; flex-wrap: wrap; gap: 6px 16px;
+  margin: 9px 0 0; padding: 0; font-size: calc(11px * var(--t-k)); color: var(--ink-mid);
+}
+.rp-legend li { display: flex; align-items: center; gap: 6px; }
+.rp-legend li::before { content: ""; width: 14px; height: 10px; flex: none; }
+.rp-legend .lg-ship::before,
+.rp-legend .lg-mob::before {
+  width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
+}
+.rp-legend .lg-ship::before { border-bottom: 11px solid var(--alert); }
+.rp-legend .lg-mob::before { border-bottom: 11px solid transparent; box-shadow: inset 0 0 0 1.5px var(--alert); }
+.rp-legend .lg-buoy::before { width: 11px; height: 11px; border-radius: 50%; background: var(--buoy); }
+.rp-legend .lg-found::before { width: 11px; height: 11px; border-radius: 50%; border: 2.5px solid var(--ok); }
+.rp-legend .lg-btrack::before { height: 0; border-top: 2px solid var(--buoy); }
+.rp-legend .lg-etrack::before { height: 0; border-top: 2px dashed var(--warn); }
+
+/* 인쇄 = PDF 저장 경로. 리포트 시트만 남긴다. */
+@media print {
+  body { background: #fff; }
+  .topbar, .layout, .admin-view, .no-print { display: none !important; }
+  .modal { position: static; padding: 0; background: none; backdrop-filter: none; display: block; }
+  .report-modal { width: 100%; max-height: none; border: 0; box-shadow: none; border-radius: 0; }
+  .report-sheet { padding: 0; }
+  /* 지도 타일과 경로선은 배경 그림이라 기본으로 인쇄에서 빠진다 — 이것만은 살린다 */
+  .rp-map, .rp-legend li::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* 섹션이 쪽 걸치면 제목만 앞 장에 남는다 */
+  .rp-sec { break-inside: avoid; page-break-inside: avoid; }
+  .leaflet-control-zoom, .attr-toggle { display: none !important; }
+}
+
+/* ── 수색 구역 격자 (신규 11) ── */
+.grid-ctl {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line);
+}
+.grid-stat { font-size: calc(10px * var(--t-k)); color: var(--ink-dim); margin-left: auto; }
+.chip-toggle:disabled { opacity: .45; cursor: default; }
+
+/* ══════════════════════════════════════════════════════════
+   피드백 반영 — 카드 테두리 · 필터 가시성 · 현재 단계
+   ══════════════════════════════════════════════════════════ */
+
+/* 사고 카드: 왼쪽 세로 바 대신 **카드 테두리 자체**가 긴급도를 말한다.
+   바는 카드 안 어딘가에 붙은 장식으로 읽히지만, 테두리는 카드 전체의 성격이 된다. */
+.inc-card {
+  display: block;
+  padding: 10px 12px;
+  border-width: 2px;
+}
+
+/* 선택은 테두리를 더 진하게 + 바깥 링으로. 테두리 굵기는 바꾸지 않는다 —
+   1px 늘어나면 카드가 흔들려 보인다. */
+.inc-card[aria-current="true"] {
+  box-shadow: 0 0 0 3px rgba(15, 58, 82, .14), var(--shadow);
+}
+
+/* 선박 카드: 선택 시 왼쪽만 굵어지던 inset 바를 없애고 테두리를 고르게 쓴다.
+   기본을 2px 로 두어 선택해도 폭이 변하지 않는다. */
+.vessel-card { border-width: 2px; }
+/* 고른 배 — 전에는 --buoy(주황) 테두리에 연한 링까지 둘렀는데, 사고가 없는 배에
+   붉은 기운이 도는 것처럼 보였다. 테두리 한 겹만 짙게 한다(2026-09-17) */
+.vessel-card[aria-current="true"] {
+  border-color: var(--sea-ink);
+  box-shadow: none;
+}
+
+/* 사고 카드의 현재 단계 — 목록에서도 "지금 어디까지 왔나"가 보여야 한다 */
+.inc-card-stage {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 8px; font-size: calc(11px * var(--t-k)); color: var(--ink-mid);
+}
+.inc-card-stage b {
+  padding: 1px 7px; border-radius: 2px;
+  font-size: calc(9px * var(--t-k)); font-weight: 700; letter-spacing: .04em;
+  background: var(--sea-ink); color: #fff;
+}
+
+/* 지도 위 패널이 회색으로 깔리는 것을 막는다. 지도가 어두워질수록 반투명이 회색으로 읽힌다. */
+.drift-box {
+  background: var(--surface);
+  backdrop-filter: none;
+  border-color: var(--line-firm);
+}
+
+/* ══════════════════════════════════════════════════════════
+   다중 선택 · 지도 패널 여백
+   ══════════════════════════════════════════════════════════ */
+
+/* .floaty 는 테두리만 준다. 패딩은 쓰는 쪽이 정하는데 drift-box 가 빠뜨리고 있었다. */
+/* 지도 위에 얹히는 상자라 지도보다 커 보이면 안 된다 — 설정 시트의 .pick-btn 보다 한 치수 줄인다 */
+.drift-box { padding: 9px 11px 10px; }
+.drift-box .drift-head { gap: 6px; margin-bottom: 5px; }
+.drift-box .pick { gap: 4px; }
+.drift-box .pick-btn { padding: 4px 9px; font-size: calc(11px * var(--t-k)); }
+
+/* 사고 카드 — 체크(지도에 함께 표시) + 본문(상세 보기)로 나뉜다 */
+/* 지도에 함께 띄운 카드는 한눈에 구분돼야 한다 */
+.inc-card.is-picked {
+  background: rgba(15, 58, 82, .05);
+  box-shadow: inset 0 0 0 1px rgba(15, 58, 82, .18);
+}
+
+.pick-summary {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 8px; padding: 7px 10px;
+  border-radius: var(--r-sm);
+  background: var(--sea-ink); color: #fff; font-size: calc(11.5px * var(--t-k));
+}
+.pick-summary b { font-weight: 700; }
+.pick-summary .chip-toggle {
+  margin-left: auto; padding: 3px 9px; font-size: calc(10.5px * var(--t-k));
+  background: transparent; border-color: rgba(255, 255, 255, .45); color: #fff;
+}
+.pick-summary .chip-toggle:hover { background: rgba(255, 255, 255, .14); border-color: #fff; color: #fff; }
+
+/* 함께 띄운 사고의 핀 — 포커스한 사고보다 조용하게 */
+.mk-pin { width: 18px; height: 18px; position: absolute; }
+.mk-pin i {
+  position: absolute; inset: 0; margin: auto; width: 13px; height: 13px;
+  border-radius: 50%; background: var(--sea-ink);
+  border: 2px solid #fff; box-shadow: 0 0 0 5px rgba(15, 58, 82, .16);
+}
+.mk-pin .mk-label { font-size: calc(10.5px * var(--t-k)); opacity: .9; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── 사고 카드: 본문(포커스) + 토글(지도에 함께 표시) ── */
+.inc-card {
+  display: grid; grid-template-columns: 1fr auto; align-items: stretch;
+  gap: 9px; padding: 10px 10px 10px 12px;
+}
+.inc-card-body {
+  appearance: none; border: 0; background: none; font: inherit; color: inherit;
+  text-align: left; cursor: pointer; padding: 0; min-width: 0;
+}
+.inc-card-body:focus-visible { outline: 2px solid var(--buoy); outline-offset: 3px; border-radius: 2px; }
+
+/* 지도에 올릴지 내릴지는 켜고 끄는 조작이다. 체크박스보다 스위치가 그 뜻에 맞는다. */
+/*
+ * 스위치가 아니라 <b>눈</b>이다 — 여기서 바뀌는 것은 사고의 상태가 아니라
+ * 내가 지도에서 보고 있는가뿐이다. 감은 눈(사선)이면 지도에서 내려간다(2026-09-17).
+ */
+.inc-pick {
+  appearance: none; border: 0; background: none; cursor: pointer; font: inherit;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  width: 54px; padding: 0;
+}
+.inc-pick .eye { flex: none; }
+/* 안 보는 중에는 눈도 흐리다. 사선만으로는 훑을 때 안 걸린다 */
+.inc-pick[aria-checked="false"] .eye { opacity: .55; }
+.inc-pick .eye-slash { stroke-width: 2.1; }
+.inc-pick em {
+  font-style: normal; font-size: calc(9.5px * var(--t-k)); font-weight: 700; line-height: 1.25;
+  text-align: center; word-break: keep-all;
+}
+.sw-track {
+  display: block; position: relative;
+  width: 34px; height: 19px; border-radius: 999px;
+  background: var(--surface-2); border: 1.5px solid var(--line-firm);
+  transition: background .16s, border-color .16s;
+}
+.sw-knob {
+  position: absolute; top: 1.5px; left: 1.5px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .28);
+  transition: transform .16s;
+}
+.inc-pick em { font-style: normal; font-size: calc(9.5px * var(--t-k)); font-weight: 700; color: var(--ink-dim); }
+.inc-pick:hover .sw-track { border-color: var(--sea-ink); }
+.inc-pick:focus-visible { outline: 2px solid var(--buoy); outline-offset: 3px; border-radius: 2px; }
+.inc-pick[aria-checked="true"] .sw-track { background: var(--sea-ink); border-color: var(--sea-ink); }
+.inc-pick[aria-checked="true"] .sw-knob { transform: translateX(15px); }
+.inc-pick[aria-checked="true"] em { color: var(--sea-ink); }
+:root[data-ui="dark"] .inc-pick[aria-checked="true"] .sw-track { background: var(--foam); border-color: var(--foam); }
+:root[data-ui="dark"] .inc-pick[aria-checked="true"] em { color: var(--foam); }
+:root[data-ui="dark"] .sw-knob { background: var(--abyss); }
+
+/* 선택은 배경으로도 말한다. 옅은 배경 = 지도에 함께 표시 중 / 진한 배경 + 링 = 지금 보고 있는 사고 */
+
+/* 함께 띄운 사고는 한 단계 물러난다. 지워지지는 않는다 — 함께 보려고 켠 것이므로. */
+.mk.is-back { opacity: .62; }
+.mk.is-back .mk-label { font-size: calc(10px * var(--t-k)); }
+.mk-buoy.is-back b { display: none; }
+.mk-person.is-back i::after { display: none; }
+
+/* ══════════════════════════════════════════════════════════
+   스크롤바
+   ══════════════════════════════════════════════════════════ */
+
+/*
+ * 스크롤바가 생기고 사라질 때마다 내용 폭이 바뀌면 카드가 흔들려 보인다.
+ * 목록은 필터 한 번에 항목 수가 확 달라지는 곳이라 특히 눈에 띈다.
+ * gutter 로 자리를 미리 잡아 두면 스크롤 여부와 상관없이 폭이 고정된다.
+ */
+/* ⚠ 지도 칸은 뺀다. 스크롤할 내용이 없는데 자리만 잡아 두면 그 10px 이
+   지도와 오른쪽 패널 사이에 빈 띠로 보인다 — 지도는 절대 배치라 그만큼 좁아진다(2026-09-17) */
+.pane:not(.pane-map),
+.admin-view,
+.report-modal {
+  scrollbar-gutter: stable;
+}
+
+/* Firefox */
+.pane, .admin-view, .report-modal, body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-firm) transparent;
+}
+
+/* Chromium·WebKit — 트랙은 비우고 손잡이만 남긴다. 기본 스크롤바는 두껍고 배경과 따로 논다. */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-firm);
+  border-radius: 999px;
+  /* 투명 테두리 + content-box 로 손잡이를 가늘게 보이면서 잡는 면적은 넓게 둔다 */
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-dim);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--sea-ink);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* 마커를 누르면 그 사고로 포커스가 옮겨 간다 — 누를 수 있다는 걸 커서로 알린다 */
+.mk-vessel, .mk-flag, .mk-buoy, .mk-person { cursor: pointer; }
+
+/* ══════════════════════════════════════════════════════════
+   대응 단계 — 화면 최상단 전체 폭 (신규 10)
+   ══════════════════════════════════════════════════════════ */
+
+/*
+ * 상황판이 위에 한 줄 더 붙으면서 .layout 의 height: calc(100vh - 57px) 가 맞지 않게 됐다.
+ * 상수를 하나 더 빼는 대신 세로 플렉스로 바꿔, 남는 높이를 본문이 가져가게 한다.
+ * 상단바 높이가 바뀌어도 따라온다.
+ */
+#root { display: flex; flex-direction: column; height: 100vh; }
+.topbar, .stage-bar { flex: none; }
+.layout { flex: 1; min-height: 0; height: auto; }
+.admin-view { flex: 1; min-height: 0; height: auto; }
+
+.stage-bar {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--line);
+  /*
+   * 띠 바탕은 회색이다. 앞으로 할 칸을 흰색으로 두면 끝난 칸(진한 회색)과 가장 잘 갈린다.
+   * 배 이름 칸까지 같은 회색이어야 한다 — 거기만 흰색이면 옆 띠와 어긋나 보인다(2026-09-18).
+   */
+  background: var(--surface-2);
+}
+/* 이 단계가 어느 배 것인지. 여러 사고가 지도에 함께 있을 때 이게 없으면 헷갈린다. */
+.stage-who {
+  flex: none; display: flex; flex-direction: column; justify-content: center; gap: 1px;
+  min-width: 128px; padding: 8px 16px;
+}
+.stage-who b { font-size: calc(13.5px * var(--t-k)); }
+.stage-who span { font-size: calc(11px * var(--t-k)); color: var(--ink-mid); font-weight: 700; }
+.stage-who span em { font-style: normal; font-weight: 400; color: var(--ink-dim); }
+.stage-bar ol {
+  flex: 1; min-width: 0;
+  list-style: none; margin: 0; padding: 0;
+  /*
+   * 다섯 칸이 오른쪽으로 이어지는 <b>화살표 띠</b>다. 나란한 네모에 얇은 띠만 얹었을 때는
+   * "진행 단계"로 읽히지 않았다 — 방향이 있는 모양과 채운 색이 그 일을 한다(2026-09-18).
+   */
+  display: flex; gap: 3px;
+  /* 칸 사이 3px 틈과 뾰족한 모서리로 띠의 회색이 비친다 */
+  background: transparent;
+}
+
+/*
+ * 화살표 칸. 순서가 뒤바뀔 수 있는 절차라 <b>색은 칸마다 따로</b> 정한다 —
+ * 모양만 이어지고, 앞 칸이 비어도 뒤 칸이 달성이면 뒤 칸만 채워진다.
+ * 뾰족한 부분(--nub)만큼 다음 칸을 파내 서로 맞물린다.
+ */
+.stage-cell {
+  --nub: 13px;
+  /* 시각도 버튼도 이 높이를 쓴다 — 둘 중 무엇이 들어가든 띄 높이가 같다 */
+  --stage-slot: calc(30px * var(--t-k));
+  position: relative; flex: 1; min-width: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 12px 16px 10px calc(16px + var(--nub));
+  /* 아직 안 한 칸 — 흰색. 회색 띠 위라 경계가 또렷하고, 끝난 칸(진한 회색)과 가장 잘 갈린다 */
+  background: var(--surface);
+  color: var(--ink-mid);
+  clip-path: polygon(0 0, calc(100% - var(--nub)) 0, 100% 50%,
+                     calc(100% - var(--nub)) 100%, 0 100%, var(--nub) 50%);
+}
+/* 첫 칸은 왼쪽이 파이지 않고, 끝 칸은 오른쪽이 뾰족하지 않다 — 띠의 양 끝이다 */
+.stage-cell:first-child {
+  padding-left: 16px;
+  clip-path: polygon(0 0, calc(100% - var(--nub)) 0, 100% 50%, calc(100% - var(--nub)) 100%, 0 100%);
+}
+.stage-cell:last-child {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, var(--nub) 50%);
+}
+/* 칸 위에 얹던 3px 띠는 없앤다 — 이제 칸 전체의 채움이 같은 말을 한다(2026-09-18) */
+/*
+ * 번호는 **채운 원**이다. 전에는 ①②③④⑤ 동그라미 문자를 글자 크기 그대로 썼는데,
+ * 굵은 단계 이름 옆에서 회색 글자 한 톨이라 눈에 안 띄었다(2026-09-17).
+ * 칠 · 테두리 · 글자색 셋으로 상태를 말한다 — 안 함(빈 원) · 달성(초록) · 지금(주황).
+ */
+.stage-no {
+  box-sizing: border-box; flex: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  font-size: calc(11px * var(--t-k)); font-weight: 700; line-height: 1;
+  border: 1.5px solid var(--line-firm); background: transparent; color: var(--ink-dim);
+}
+.stage-name { font-size: calc(12.5px * var(--t-k)); font-weight: 700; }
+/*
+ * 시각과 버튼은 <b>같은 높이의 칸</b>을 차지한다. 둘 중 하나만 들어가는 자리인데
+ * 버튼이 11px 더 높아서, 진행 중 사고(버튼 있음)와 끝난 사고(시각만)를 오가면
+ * 띄 높이가 75 ↔ 64 로 바뀜 화면 전체가 위아래로 뛰었다(2026-09-18).
+ * 글자만 있는 쪽에도 버튼과 같은 안쪽 여백·테두리를 투명하게 준다.
+ */
+.stage-at {
+  font-size: calc(12px * var(--t-k));
+  display: inline-flex; align-items: center;
+  min-height: var(--stage-slot); border: 1px solid transparent;
+}
+
+/*
+ * 끝난 칸 — <b>회색</b>. 지나간 일이라 색을 쓸 자리가 아니다.
+ * 띠 바탕보다 진해서 "지나온 구간"으로 읽힌다(2026-09-18).
+ */
+/* 끝난 칸 — 진한 회색 + 번호 자리에 체크(StageBoard). 색 하나로 앞뒤를 가르지 않는다 */
+/* 끝난 칸은 띠 바탕보다 한 단계만 진하다. 너무 진하면 지나간 일이 눈을 끌고, 같으면 갈리지 않는다 */
+/* 바탕은 <b>위치</b>가 정한다 — 지나간 칸은 달성 못 했어도 회색이다(StageBoard) */
+.stage-cell.is-past { background: color-mix(in srgb, var(--ink-dim) 32%, var(--surface)); color: var(--ink-mid); }
+/* 글자·번호는 <b>달성 여부</b>가 정한다. 지나갔지만 못 한 칸은 `—` 가 흐리게 남는다 */
+.stage-cell.is-done { color: var(--ink-mid); }
+.stage-cell.is-done .stage-name { color: var(--ink); }
+.stage-cell.is-done .stage-at { color: var(--ink-mid); font-weight: 700; }
+.stage-cell.is-done .stage-no {
+  background: transparent; border-color: var(--line-firm); color: var(--ink-mid);
+}
+
+/* 달성한 칸 중 가장 최근이 '지금'이다 — 이 칸만 색을 쓴다. 눈이 여기에 먼저 가야 한다 */
+.stage-cell.is-now { background: var(--alert); color: #fff; }
+.stage-cell.is-now .stage-name,
+.stage-cell.is-now .stage-at { color: #fff; }
+.stage-cell.is-now .stage-no {
+  background: rgba(255, 255, 255, .22); border-color: rgba(255, 255, 255, .9); color: #fff;
+}
+
+/*
+ * 종결된 사고(기록) — 마지막 칸이 빨강일 이유가 없다. 빨강은 "지금 손이 가야 한다"는 뜻인데
+ * 끝난 사고에는 거짓말이다. 그렇다고 다섯 칸을 모두 회색으로 두면 <b>어디서 끝났는지</b>가 안 보인다 —
+ * 마지막 칸만 짙은 남색으로 넣는다. 색은 남아 끝을 짚어 주되, 재촉하지는 않는다(2026-09-18).
+ */
+.stage-bar.is-log .stage-cell.is-now { background: var(--sea-ink); }
+.stage-bar.is-log .stage-cell.is-now .stage-no {
+  background: rgba(255, 255, 255, .18); border-color: rgba(255, 255, 255, .72);
+}
+
+@media (max-width: 1180px) {
+  .stage-cell { --nub: 9px; padding: 8px 10px 9px calc(10px + var(--nub)); }
+  .stage-cell:first-child { padding-left: 10px; }
+}
+
+/* 지금 보고 있는 사고 — 배경만으로는 옆 카드와 헷갈린다. 이름 옆에 못 박아 둔다. */
+.inc-now-tag {
+  padding: 1px 7px; border-radius: 2px; flex: none;
+  font-size: calc(9.5px * var(--t-k)); font-weight: 700; letter-spacing: .02em;
+  background: var(--sea-ink); color: #fff;
+}
+
+/* ══════════════════════════════════════════════════════════
+   수색 모드 — 출동한 구조정이 보는 화면 (신규 11)
+   상황판이 아니라 현장 도구다. 지도가 크고, 글자는 배 위에서 읽을 만큼 커야 한다.
+   ══════════════════════════════════════════════════════════ */
+
+.search-mode {
+  position: fixed; inset: 0; z-index: 1800;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+}
+
+.sm-bar {
+  flex: none; display: flex; align-items: center; gap: 14px;
+  padding: 11px 18px; border-bottom: 1px solid var(--line-firm); background: var(--surface);
+}
+.sm-title { display: flex; align-items: baseline; gap: 9px; }
+.sm-title b { font-size: calc(16px * var(--t-k)); font-family: Jua, sans-serif; font-weight: 400; }
+.sm-title span { font-size: calc(12px * var(--t-k)); color: var(--ink-dim); }
+
+.sm-clock { margin-left: auto; display: flex; align-items: baseline; gap: 9px; }
+.sm-clock-label { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.sm-clock b { font-size: calc(16px * var(--t-k)); }
+.sm-surv {
+  padding: 3px 10px; border-radius: 2px; font-size: calc(11.5px * var(--t-k)); font-weight: 700;
+  background: rgba(var(--warn-rgb), .16); color: var(--warn);
+}
+.sm-surv.is-past { background: rgba(217, 64, 64, .14); color: var(--alert); }
+.sm-play { min-width: 108px; }
+
+.sm-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1px; background: var(--line); }
+.sm-map { position: relative; background: var(--surface); }
+.sm-map .map-canvas { position: absolute; inset: 0; }
+
+.sm-side {
+  background: var(--bg); padding: 16px 16px 22px; overflow: auto;
+  display: flex; flex-direction: column; gap: 14px;
+  scrollbar-gutter: stable;
+}
+
+/* 지금 해야 할 일 하나. 이 화면에서 제일 큰 글씨다. */
+.sm-next {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 14px 16px; border-radius: var(--r);
+  border: 2px solid var(--ok); background: rgba(47, 143, 109, .08);
+}
+/* 방위와 거리를 한 줄에 — 줄을 나누면 상자만 커지고 읽는 순서는 같다 */
+.sm-next-line { display: flex; align-items: baseline; gap: 10px; }
+.sm-next-brg { font-size: calc(32px * var(--t-k)); font-weight: 700; line-height: 1.05; color: var(--ok); }
+.sm-next-dist { font-size: calc(18px * var(--t-k)); font-weight: 700; }
+.sm-next-eta { font-size: calc(11px * var(--t-k)); color: var(--ink-mid); margin-top: 3px; }
+.sm-next-done { font-size: calc(17px * var(--t-k)); color: var(--ink-mid); }
+
+.sm-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sm-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 10px 4px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--surface);
+}
+.sm-stat b { font-size: calc(20px * var(--t-k)); font-weight: 700; }
+.sm-stat span { font-size: calc(10.5px * var(--t-k)); color: var(--ink-dim); }
+.sm-stat.is-todo b { color: var(--alert); }
+/* 재수색은 노랑 그대로 — 지도 격자 칸 색(#f2c14e 계열)과 맞아야 한다 */
+.sm-stat.is-stale b { color: #c8912a; }
+.sm-stat.is-done b { color: var(--ok); }
+
+.sm-left { margin: -6px 2px 0; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+
+/*
+ * ── 수색 모드 오른쪽 패널 ──
+ * 자주 보는 것이 위에, 한 번 보면 끝나는 것은 접힌 줄로. 구조정 태밀릿이라
+ * 버튼은 장갑 낀 손으로 누를 만큼 키우고, 글자도 한 단계 올린다(2026-09-18).
+ */
+.search-mode { --t-k: 1.15; }
+/* 좌표는 배울을 다 따라가면 좁은 패널에서 두 줄로 껸인다 — 한 줄에 들어가는 만큼만 */
+.sm-coord b { font-size: calc(13px * var(--t-k)); letter-spacing: -.01em; }
+.sm-side button, .sm-act, .sm-fold > summary { min-height: 44px; }
+.sm-seg button { min-height: 40px; }
+
+/* 진행 상황 네 값을 한 줄로. 칸을 나눠 두면 90px 를 쓰고 아래가 스크롤 밖으로 밀린다 */
+.sm-tally {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  margin: 0; font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid);
+}
+.sm-tally span { display: inline-flex; align-items: baseline; gap: 4px; }
+.sm-tally b { font-size: calc(17px * var(--t-k)); font-weight: 700; font-variant-numeric: tabular-nums; }
+.sm-tally .is-todo b { color: var(--alert); }
+.sm-tally .is-done b { color: var(--ok); }
+.sm-tally .is-stale b { color: var(--warn); }
+.sm-tally em { margin-left: auto; font-style: normal; color: var(--ink-dim); }
+
+/* 접힌 줄 — 한 번 정하면 끝나는 것(패턴 · 사고 정보 · 범례) */
+/*
+ * 접힌 줄은 <b>각자 상자가 아니라 줄이다.</b> 테두리를 두르면 빈 카드 둘이 밑에
+ * 떠 있는 것처럼 보인다 — 위에 가로줄 하나만 긋고 조용히 쌓는다(2026-09-18).
+ */
+.sm-fold { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; }
+.sm-fold + .sm-fold { border-top: 1px solid var(--line); }
+.sm-fold > summary {
+  display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none;
+  padding: 9px 0; font-size: calc(12px * var(--t-k)); font-weight: 700; color: var(--ink-mid);
+}
+.sm-fold[open] > summary { color: var(--ink); }
+.sm-fold > summary::-webkit-details-marker { display: none; }
+/* 여닫힐 수 있는 줄이라는 것을 표시한다 — 열리면 돌아서 아래를 가리킨다 */
+.sm-fold > summary::before {
+  content: "▸"; flex: none; font-size: calc(10px * var(--t-k)); color: var(--ink-dim);
+  transition: transform .15s;
+}
+.sm-fold[open] > summary::before { transform: rotate(90deg); }
+.sm-fold > summary em {
+  margin-left: auto; font-style: normal; font-weight: 400;
+  font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid);
+}
+.sm-fold-body {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 0 0 12px;
+}
+
+.sm-legend { display: flex; flex-direction: column; gap: 6px; font-size: calc(11px * var(--t-k)); color: var(--ink-mid); }
+.sm-legend div { display: flex; align-items: center; gap: 8px; }
+.sm-key { width: 13px; height: 13px; border-radius: 2px; flex: none; border: 1.5px solid; }
+.sm-key.is-todo { background: rgba(217, 64, 64, .32); border-color: #c96a6a; }
+.sm-key.is-done { background: rgba(47, 143, 109, .18); border-color: #2f8f6d; }
+.sm-key.is-stale { background: rgba(242, 193, 78, .34); border-color: #c8912a; border-style: dashed; }
+
+.sm-coord { display: flex; flex-direction: column; gap: 3px; }
+/* 위도 줄 · 경도 줄. 무전으로 부를 때도 이 순서라 읽는 순서와 맞는다 */
+.sm-ll i { display: block; font-style: normal; }
+.sm-coord b { font-size: calc(14px * var(--t-k)); }
+.sm-coord-sub { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+
+/* ── 수색 모드 — 경비정 태블릿. 사고 정보 · 부표 상태 · 현장 조작 ── */
+.sm-title { align-items: center; }
+.sm-title b { font-size: calc(20px * var(--t-k)); }
+.sm-mode { font-size: calc(11px * var(--t-k)); font-weight: 700; letter-spacing: .04em; color: var(--ink-dim); }
+.sm-type { font-size: calc(13.5px * var(--t-k)); font-weight: 700; color: var(--ink); }
+
+/* 사이드는 스크롤 영역 + 늘 보이는 조작부로 나눈다 */
+.sm-side { padding: 0; gap: 0; overflow: hidden; }
+.sm-side-scroll {
+  flex: 1; min-height: 0; overflow: auto; scrollbar-gutter: stable;
+  padding: 16px 16px 22px; display: flex; flex-direction: column; gap: 14px;
+}
+.sm-side-foot {
+  flex: none; display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 16px 14px; border-top: 1px solid var(--line-firm); background: var(--surface);
+}
+
+.sm-card {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 14px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--surface);
+}
+.sm-facts { margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.sm-facts div { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: baseline; gap: 8px; }
+.sm-facts dt { font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.sm-facts dd { margin: 0; min-width: 0; font-size: calc(13px * var(--t-k)); }
+.sm-facts dd .mono { margin-left: 6px; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.sm-buoy-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.sm-buoy-note { margin: 0; font-size: calc(11.5px * var(--t-k)); line-height: 1.6; color: var(--ink-mid); }
+
+/* 현장 조작 — 흔들리는 배 위에서 장갑 낀 손으로 누르는 크기 */
+.sm-act {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(15px * var(--t-k)); font-weight: 700;
+  min-height: 48px; padding: 0 14px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink);
+}
+.sm-act.is-found { background: var(--ok); border-color: var(--ok); color: #fff; }
+.sm-act.is-close-ghost { border: 1.5px solid var(--alert); color: var(--alert); }
+.sm-act.is-close { background: var(--alert); border-color: var(--alert); color: #fff; }
+.sm-act:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.sm-confirm { display: flex; flex-direction: column; gap: 8px; font-size: calc(12.5px * var(--t-k)); font-weight: 700; color: var(--alert); }
+.sm-confirm > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sm-found {
+  margin: 0; padding: 12px 14px; border-radius: 2px;
+  background: rgba(47, 143, 109, .1); color: var(--ok); font-size: calc(13.5px * var(--t-k)); font-weight: 700;
+}
+
+/* 수색 패턴 카드 */
+.sm-pattern-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sm-pattern-head em { font-style: normal; font-size: calc(11px * var(--t-k)); font-weight: 700; color: var(--alert); }
+.sm-pattern-name { font-size: calc(17px * var(--t-k)); }
+.sm-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; border-radius: 2px; background: var(--surface-2); }
+.sm-seg button {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(11.5px * var(--t-k)); font-weight: 700;
+  min-height: 34px; padding: 0 2px; border: 0; border-radius: 2px;
+  background: transparent; color: var(--ink-mid); white-space: nowrap;
+}
+.sm-seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.sm-seg button:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+.sm-pattern-why { margin: 0; font-size: calc(11.5px * var(--t-k)); line-height: 1.6; color: var(--ink-mid); }
+
+/* 구조정 — 초록. 조난자(빨강)와 헷갈리면 안 된다. */
+.mk-boat { width: 30px; height: 30px; position: absolute; cursor: default; }
+.report-none { margin: 4px 0 0; font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim); }
+
+/* ══════════════════════════════════════════════════════════
+   비-MOB 사고 — 조난 대상이 사람이 아니라 배다
+   ══════════════════════════════════════════════════════════ */
+
+/* 목록 카드에서 "사람 위치 배지" 자리를 대신한다. 무엇으로 신고했는지가 그 자리의 정보다. */
+.kind-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: var(--r-sm);
+  font-size: calc(11px * var(--t-k)); font-weight: 700; white-space: nowrap;
+  border: 1px solid rgba(15, 58, 82, .32);
+  background: rgba(15, 58, 82, .08); color: var(--sea-ink);
+}
+.kind-badge em { font-style: normal; font-weight: 400; color: var(--warn); }
+:root[data-ui="dark"] .kind-badge { color: var(--foam); border-color: rgba(127, 212, 217, .32); }
+
+/* ══════════════════════════════════════════════════════════
+   사고 카드 — 색은 전부 **긴급도**를 따른다
+
+   테두리만 긴급도를 따르고 배경·링·태그는 빨강으로 박혀 있었다. 그래서 URGENCY 사고가
+   주황 테두리에 빨간 배경이라는 모순된 모습이 됐다. 긴급도별 색을 변수 하나로 두고
+   나머지가 전부 그 변수를 보게 한다.
+   ══════════════════════════════════════════════════════════ */
+
+/* 선박 카드도 같은 토큰을 쓴다 — 진행 중인 배는 그 사고의 긴급도 색을 입는다(목록과 같은 규칙) */
+/*
+ * 🔴 <b>'지도에 표시' 색은 여기 하나다.</b> 칸을 칠하는 색과 카드 테두리 색이 같아야 하는데,
+ * 그동안 자리마다 따로 적어 둘이 어긋났다 — 보는 중 칸은 --urg-c(불투명), 테두리는 .85 라
+ * 같은 회색인데 한 단계 어깋난 두 색으로 보였다(2026-09-18).
+ * 새 자리가 생기면 색을 적지 말고 이 변수를 쓴다.
+ */
+/*
+ * 🔴 <b>반투명을 쓰지 않는다.</b> 칸과 테두리가 같은 .85 였는데도 칸 가장자만 진해 보였다 —
+ * 카드의 안쪽 테두리(inset 2px)가 칠해둔 칸 <b>위에 곹쳐</b> 그려져 그 띄만 0.85가 두 번
+ * 쌓였기 때문이다(0.85 → 0.98). 미리 섞은 불투명 색을 쓰면 몇 겹을 쌓든 같은 색이다(2026-09-18).
+ */
+.inc-card, .vessel-card, .vinc-card, .hist-item {
+  --pick-fill: color-mix(in srgb, rgb(var(--urg-rgb)) 85%, var(--surface));
+}
+.inc-card, .vessel-card { --urg-rgb: 133, 153, 159; --urg-c: var(--ink-dim); }
+.inc-card.urg-d, .vessel-card.urg-d { --urg-rgb: 217, 64, 64;  --urg-c: var(--alert); }   /* 조난 */
+.inc-card.urg-u, .vessel-card.urg-u { --urg-rgb: var(--warn-rgb); --urg-c: var(--warn); }    /* 긴급 */
+/* 선택 안 된 카드의 긴급도 색 — 흰색에 반투명(45%)으로 섞으면 파스텔이 되어 선택된 카드와 구분이 흐렸다(2026-09-15).
+   밝은 회색에 섞어 채도만 뺀다. 빨강·노랑·초록 색상은 남고, 선택된 카드(85% · 원색)와의 차이는 커진다.
+   회색은 --urg-mute-base 하나로 두어 다크에서는 어두운 회색에 섞인다 */
+.inc-card, .vessel-card, .vinc-card { --urg-mute: color-mix(in srgb, rgb(var(--urg-rgb)) 45%, var(--urg-mute-base)); }
+
+/*
+ * 배경은 전부 흰색이다. 색을 깔면 카드가 무거워지고, 긴급도 색과 상태 색이 같은 면에서 겹친다.
+ * 상태는 **테두리 굵기**로만 말한다 — 색은 긴급도, 굵기는 상태로 축을 나눈다.
+ *
+ * border-width 를 직접 바꾸면 카드 크기가 달라져 목록이 흔들린다.
+ * 그래서 굵기는 안쪽 그림자로 덧댄다. 레이아웃에 영향을 주지 않는다.
+ */
+.inc-card,
+.vessel-card.is-live {
+  background: var(--surface);
+  border-color: var(--urg-mute);
+}
+.inc-card:hover,
+.vessel-card.is-live:hover { border-color: rgba(var(--urg-rgb), .8); }
+
+/* 지도에 함께 표시 중 — 한 겹 */
+/*
+ * 테두리 색은 <b>'지도에 표시' 칸을 칠한 색과 같아야 한다.</b> 같은 색을 쓰면서
+ * 투명도만 달랐더니(칸 .85 · 테두리 안줃 .5 · 보는 중 1.0) 같은 색이 아니라
+ * 조금씩 어깋난 세 가지로 보였다 — 한 카드 안에서 제일 잘 보이는 틈이다(2026-09-18).
+ */
+.inc-card.is-picked,
+.vessel-card.is-live.is-picked {
+  background: var(--surface);
+  border-color: var(--pick-fill);
+  box-shadow: inset 0 0 0 1px var(--pick-fill);
+}
+
+/* 지금 보고 있는 사고 — 두 겹. 목록에서 제일 두껍다 */
+.inc-card[aria-current="true"],
+.vessel-card.is-live[aria-current="true"] {
+  background: var(--surface);
+  /* 칸과 같은 값이다. 전에는 --urg-c(불투명)를 써 칸보다 한 단계 진했다 */
+  border-color: var(--pick-fill);
+  box-shadow: inset 0 0 0 2px var(--pick-fill), var(--shadow);
+}
+
+/*
+ * 마커 라벨은 아이콘보다 훨씬 넓고 옆 사고의 마커 위까지 뻗는다.
+ * 라벨이 클릭을 먹으면 삼양호를 눌러도 그 위를 덮고 있던 다른 사고가 선택된다.
+ * 라벨은 읽으라고 있는 것이므로 클릭은 통과시키고, 아이콘만 누를 수 있게 한다.
+ */
+.mk-label { pointer-events: none; }
+
+/* 카드의 지도 번호 — 지도 위 덩어리와 잇는 표식. i 태그라 기울지 않게 눌러 둔다. */
+.inc-no { background: var(--urg-c); }
+
+
+/*
+ * 좁은 화면(1200px 이하)에서는 3단이 한 줄로 쌓인다. 이때는 페이지가 길어지며 스크롤돼야 한다.
+ * 단계 바를 올리면서 #root 를 화면 높이(100vh)로 고정했는데, 그게 쌓이는 모드까지 묶어 버려
+ * 목록이 찌그러지고 상세 아래쪽이 잘려 닿을 수 없게 됐다. 이 폭에서만 고정을 푼다.
+ * 위쪽 규칙보다 뒤에 있어야 이긴다 — 그래서 파일 끝에 둔다.
+ */
+@media (max-width: 1200px) {
+  #root { height: auto; min-height: 100vh; }
+  .layout { flex: none; height: auto; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   카드·단계 바·지도 버튼 다듬기
+   ══════════════════════════════════════════════════════════ */
+
+/* 단계 칸이 좁아지면 시간을 이름 아래로 내린다. 이름이 한 글자씩 세로로 쪼개지던 것을 막는다.
+   화면 폭이 아니라 단계 바 자신의 폭을 본다 — 왼쪽 배 이름 칸 폭이 바뀌어도 맞게 반응한다. */
+.stage-bar ol { container-type: inline-size; container-name: stages; }
+.stage-name { word-break: keep-all; }
+/*
+ * 좁을 때 — <b>번호를 뺀다.</b> 이름과 시각이 이미 두 줄인데 번호 칸이 왼쪽 폭까지 먹어,
+ * 칸이 두껍게 자라고 그만큼 화살표 꼭지도 뭉툭해 보였다. 번호는 지도 마커와 잇는 표식이
+ * 아니라 단계 순서라, 왼쪽에서 오른쪽으로 놓인 것 자체가 이미 순서를 말한다(2026-09-18).
+ */
+@container stages (max-width: 1450px) {
+  .stage-cell .stage-no { display: none; }
+  .stage-cell {
+    /* 칸이 낮아진 만큼 꼭지도 얕게 — 높이 대비 13px 은 뭉툭하다 */
+    --nub: 9px;
+    --stage-slot: calc(20px * var(--t-k));
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 0;
+    padding: 7px 10px 7px calc(10px + var(--nub));
+  }
+  .stage-cell:first-child { padding-left: 10px; }
+  .stage-cell .stage-name { grid-column: 1; grid-row: 1; }
+  .stage-cell .stage-at   { grid-column: 1; grid-row: 2; justify-self: start; }
+  .stage-cell .stage-do   { grid-column: 1; grid-row: 2; justify-self: start; }
+  .stage-who { min-width: 96px; padding: 7px 10px; }
+  /*
+   * 이름은 <b>반드시 한 줄</b>이다. `탐지 · 부표 발사` 가 꺾이면 칸이 세 줄이 되고,
+   * 다섯 칸 중 하나만 꺾여도 띠 전체가 그 높이를 따라간다 — 줄이려고 번호를 뺀 것이 무의미해진다.
+   * 글자를 줄여서 맞추고, 그래도 모자라면 … 로 자른다(2026-09-18).
+   */
+  .stage-cell .stage-name {
+    font-size: calc(11.5px * var(--t-k));
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .stage-cell .stage-at { font-size: calc(11px * var(--t-k)); }
+}
+
+/* 더 좁아지면 한 단계 더 줄인다 — 자르는 것보다 작게 쓰는 편이 읽힌다 */
+@container stages (max-width: 1080px) {
+  .stage-cell .stage-name { font-size: calc(10.5px * var(--t-k)); }
+  .stage-cell .stage-at { font-size: calc(10px * var(--t-k)); }
+  .stage-cell { --nub: 7px; padding: 6px 8px 6px calc(8px + var(--nub)); }
+  .stage-cell:first-child { padding-left: 8px; }
+}
+
+/* 오른쪽 "지도" 칸 전체가 버튼이다. 박스를 씌우지 않고 세로 구분선 하나로 칸을 나눈다 —
+   선 오른쪽이 통째로 토글 영역이라는 게 드러나고, 카드 위에 덩어리가 하나 더 얹히지 않는다. */
+.inc-pick {
+  align-self: stretch;
+  border: 0; border-left: 1px solid var(--line); border-radius: 0;
+  background: none;
+  padding: 4px 0 4px 10px; width: 54px;
+  transition: border-color .15s;
+}
+.inc-pick:hover { border-left-color: var(--line-firm); }
+.inc-pick:hover em { color: var(--ink-mid); }
+
+/*
+ * 카드 바탕은 진행 · 종결 구분 없이 흰색이다.
+ * 전에는 종결을 회색으로 깔았는데, 상단 탭을 `사고 | 기록` 으로 나눈 뒤로는
+ * 기록 탭에 있는 것이 이미 종결된 것이라 바탕이 같은 말을 한 번 더 하는 셈이다(2026-09-17).
+ */
+.inc-card { background: var(--surface); }
+
+/* LoRa 통신 — 알약 + 신호 점. 끊기면 점선 */
+.lora-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px 3px 8px; border-radius: 2px;
+  font-size: calc(11px * var(--t-k)); font-weight: 700; white-space: nowrap; border: 1px solid;
+}
+.lora-badge i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.lora-badge.is-on  { color: var(--ok); border-color: rgba(47, 143, 109, .45); background: rgba(47, 143, 109, .1); }
+.lora-badge.is-on i { background: var(--ok); box-shadow: 0 0 0 3px rgba(47, 143, 109, .2); }
+.lora-badge.is-off { color: var(--alert); border-color: rgba(217, 64, 64, .55); border-style: dashed; background: rgba(217, 64, 64, .07); }
+.lora-badge.is-off i { background: transparent; border: 1.5px dashed var(--alert); }
+
+/* 부표 버튼 — 네모 + 체크/엑스. LoRa 와 모양이 달라야 한눈에 갈린다 */
+.btn-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 2px;
+  font-size: calc(11px * var(--t-k)); font-weight: 700; white-space: nowrap; border: 1px solid;
+}
+.btn-badge.is-on  { color: var(--ok);   border-color: rgba(47, 143, 109, .45); background: rgba(47, 143, 109, .1); }
+/* 부표 버튼 안 눌림 — 사람이 부표를 잡았는지 모른다는 뜻이다. 주의가 아니라 경고로 빨강 */
+.btn-badge.is-off { color: var(--alert); border-color: rgba(217, 64, 64, .5); background: rgba(217, 64, 64, .08); }
+
+/* "구조대 대응 단계" — 문장이 길어져 글자를 조금 키운다 */
+/* 단계는 배지가 아니라 글자로. 색 덩어리가 카드마다 붙으면 배지들 사이에서 오히려 묻힌다 */
+.inc-card .inc-card-stage b {
+  padding: 0; border-radius: 0; background: none;
+  font-size: calc(12px * var(--t-k)); font-weight: 700; letter-spacing: 0; color: var(--ink);
+}
+
+/* 수색 모드 전환 — 지도 위에서 가장 먼저 눈에 들어와야 한다 */
+/* 수색 모드로 전환 — 지도 위에서 가장 먼저 눈에 들어와야 하는 버튼이다.
+   남색은 지도 위 다른 칸·상단바와 섞여 묻혔다. 부표 주황으로 채우고 한 단계 크게 둔다.
+   폭은 왼쪽 위 줄의 다른 칸과 같게 두고(244px) 높이만 키운다. */
+.map-btn.map-search {
+  min-height: 48px; padding: 0 14px; gap: 10px;
+  font-size: calc(13.5px * var(--t-k)); color: #fff;
+  background: var(--buoy); border-color: var(--buoy); backdrop-filter: none;
+  box-shadow: 0 6px 18px -6px rgba(226, 100, 58, .7), var(--shadow);
+}
+.map-btn.map-search .map-btn-ico { color: #fff; font-size: calc(17px * var(--t-k)); }
+/* 누르면 화면이 넘어간다는 표시 */
+.map-btn.map-search::after { content: "→"; margin-left: auto; font-size: calc(15px * var(--t-k)); font-weight: 700; }
+.map-btn.map-search:hover { filter: brightness(1.08); border-color: var(--buoy); }
+/* 주황 바탕에 주황 포커스 테두리는 안 보인다 */
+.map-btn.map-search:focus-visible { outline-color: var(--ink); }
+:root[data-ui="dark"] .map-btn.map-search { background: var(--buoy); border-color: var(--buoy); color: #fff; }
+:root[data-ui="dark"] .map-btn.map-search .map-btn-ico { color: #fff; }
+:root[data-ui="dark"] .map-btn.map-search:focus-visible { outline-color: var(--foam); }
+
+/* ══════════════════════════════════════════════════════════
+   좁은 화면 — 지도가 주인공이다
+   목록은 배 이름 · 시간 · 사고 유형만 남긴 가로 칩으로 줄이고, 지도를 바로 그 아래에 크게 둔다.
+   넓은 화면에서는 칩 전용 요소를 숨긴다.
+   ══════════════════════════════════════════════════════════ */
+.inc-chip-line, .inc-lora-dot { display: none; }
+
+@media (max-width: 1200px) {
+  /* 지도 칸이 첫 화면의 나머지를 채운다. 상단바·단계 바·칩 줄을 뺀 높이다. */
+  .layout { grid-template-rows: auto minmax(360px, calc(100vh - 340px)) auto; }
+  .layout > .pane:first-child { padding-bottom: 10px; }
+
+  /* 상태 탭은 한 줄로, 넘치면 옆으로 민다 */
+  .ftabs { overflow-x: auto; }
+
+  /* 사고 목록 → 가로 칩 줄 */
+  .inc-list {
+    flex-direction: row; gap: 8px;
+    overflow-x: auto; padding: 2px 2px 6px;
+    /* 딱 떨어지는 칸 수로 나눈다. 폭이 고정이면 첫 화면에서 마지막 칩이 오른쪽 끝에서 잘린다. */
+    container-type: inline-size; container-name: chips;
+  }
+  .inc-list .inc-card {
+    flex: none; width: calc((100cqw - 8px) / 2);
+    padding: 8px 6px 8px 10px; gap: 6px; align-items: center;
+  }
+
+  /* 칩에는 배 이름 · 시간 · 사고 유형만. 나머지는 넓은 화면과 상세 패널에서 본다 */
+  /* 폭이 웬만하면 최소 3장은 한 번에 보이게 한다. 넓어지면 칩이 220px 남짓이 되도록 늘린다 */
+  @container chips (min-width: 420px) { .inc-list .inc-card { width: calc((100cqw - 16px) / 3); } }
+  @container chips (min-width: 912px) { .inc-list .inc-card { width: calc((100cqw - 24px) / 4); } }
+  @container chips (min-width: 1140px) { .inc-list .inc-card { width: calc((100cqw - 32px) / 5); } }
+
+  .inc-list .inc-card-when,
+  .inc-list .buoy-line,
+  .inc-list .inc-card-foot,
+  .inc-list .badge,
+  .inc-list .inc-now-tag { display: none; }
+
+  .inc-list .inc-card-top h3 { font-size: calc(13px * var(--t-k)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inc-list .inc-chip-line {
+    display: flex; align-items: baseline; gap: 6px; margin-top: 3px;
+    font-size: calc(11px * var(--t-k)); color: var(--ink-mid); min-width: 0;
+  }
+  .inc-list .inc-chip-line .mono { flex: none; color: var(--ink); font-weight: 700; }
+  .inc-chip-type { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+  /* LoRa 두절 — 이름 옆 작은 빨간 점 */
+  .inc-list .inc-lora-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none;
+    background: var(--alert); box-shadow: 0 0 0 3px rgba(217, 64, 64, .2);
+  }
+
+  /* 토글은 남긴다. 칩 높이에 맞게 스위치만 두고 글자는 뺀다 */
+  /* 칩에서는 회색 박스 없이 스위치만. 누르는 범위도 스위치 크기에 맞춘다 */
+  .inc-list .inc-pick,
+  .inc-list .inc-pick:hover,
+  .inc-list .inc-pick[aria-checked="true"] { border: 0; background: none; }
+  .inc-list .inc-pick { width: 36px; padding: 0; gap: 0; }
+  .inc-list .inc-pick em { display: none; }
+
+  /* 등록 선박도 같은 방식 — 이름과 지도 스위치만 남긴 가로 칩. 칸 수로 딱 떨어지게 나눈다 */
+  .vessel-list {
+    flex-direction: row; gap: 8px; overflow-x: auto; padding: 2px 2px 6px;
+    container-type: inline-size; container-name: vchips;
+  }
+  .vessel-list .vessel-card {
+    flex: none; width: calc((100cqw - 8px) / 2);
+    gap: 4px; padding: 6px 6px 6px 10px;
+  }
+  .vessel-list .vessel-card-body { grid-template-columns: minmax(0, 1fr); }
+  .vessel-list .vessel-avatar,
+  .vessel-list .vessel-card p { display: none; }
+  .vessel-list .vessel-card h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 스위치는 사고 칩과 같다 — 칸 구분선 없이 스위치만 */
+  .vessel-list .inc-pick,
+  .vessel-list .inc-pick:hover,
+  .vessel-list .inc-pick[aria-checked="true"] { border: 0; background: none; }
+  .vessel-list .inc-pick { width: 36px; padding: 0; gap: 0; }
+  .vessel-list .inc-pick em { display: none; }
+  @container vchips (min-width: 360px) { .vessel-list .vessel-card { width: calc((100cqw - 16px) / 3); } }
+  @container vchips (min-width: 520px) { .vessel-list .vessel-card { width: calc((100cqw - 24px) / 4); } }
+  @container vchips (min-width: 700px) { .vessel-list .vessel-card { width: calc((100cqw - 40px) / 6); } }
+  @container vchips (min-width: 960px) { .vessel-list .vessel-card { width: calc((100cqw - 56px) / 8); } }
+}
+
+/*
+ * 사고 카드 오른쪽 "지도" 칸을 **카드 테두리와 같은 색**으로 채운다. 테두리와 칸이 한 덩어리로 읽힌다.
+ * 스위치 말고는 비어 있던 칸이라 색 면으로 쓴다. 색상은 긴급도(조난 빨강 · 긴급 주황 · 안전 청회색),
+ * 진하기는 지도 표시 상태다 — 위의 테두리 규칙을 그대로 따른다.
+ *   꺼짐          테두리 .45  → 옅은 칸, 스위치·글자는 긴급도 색
+ *   켜짐          테두리 .85  → 진한 칸, 흰 스위치
+ *   보고 있는 사고 테두리 100% → 꽉 찬 칸
+ * 칸이 카드 끝까지 닿도록 카드 안쪽 여백만큼 음수 여백을 주고, 테두리(2px) 안쪽 모서리에 맞춰 둥글린다.
+ */
+.inc-card .inc-pick {
+  margin: -10px -10px -10px 0; padding: 4px 0; width: 54px;
+  border: 0; border-radius: 0 calc(var(--r) - 2px) calc(var(--r) - 2px) 0;
+  background: var(--urg-mute);
+  transition: background .15s;
+}
+/* 카드 hover 때 테두리가 .8 로 짙어진다. 칸도 같이 */
+.inc-card:hover .inc-pick { background: rgba(var(--urg-rgb), .8); }
+.inc-card.is-picked .inc-pick { background: var(--pick-fill); }
+.inc-card[aria-current="true"] .inc-pick { background: var(--pick-fill); }
+
+/* 꺼짐 — 옅은 칸 위라 흰색은 안 읽힌다. 긴급도 색으로 */
+.inc-card .inc-pick em { color: var(--urg-c); }
+.inc-card .inc-pick .sw-track { background: rgba(255, 255, 255, .7); border-color: var(--urg-c); }
+
+/* 켜짐 · 보고 있는 사고 — 진한 칸 위라 흰색으로 뒤집는다 */
+.inc-card.is-picked .inc-pick em,
+.inc-card[aria-current="true"] .inc-pick em,
+.inc-card.is-picked .inc-pick[aria-checked="true"] em,
+.inc-card[aria-current="true"] .inc-pick[aria-checked="true"] em { color: #fff; }
+.inc-card.is-picked .inc-pick .sw-track,
+.inc-card[aria-current="true"] .inc-pick .sw-track { background: rgba(255, 255, 255, .25); border-color: rgba(255, 255, 255, .8); }
+.inc-card .inc-pick[aria-checked="true"] .sw-track { background: #fff; border-color: #fff; }
+.inc-card .inc-pick[aria-checked="true"] .sw-knob { background: var(--urg-c); box-shadow: none; }
+
+/* 좁은 화면의 칩 줄 — 위 블록이 스위치 칸 바탕을 지우므로 여기서 다시 칠한다. 칩은 안쪽 여백이 더 좁다 */
+@media (max-width: 1200px) {
+  .inc-list .inc-card .inc-pick,
+  .inc-list .inc-card .inc-pick[aria-checked="true"] {
+    margin: -8px -6px -8px 0; width: 36px;
+    background: var(--urg-mute);
+  }
+  .inc-list .inc-card.is-picked .inc-pick { background: var(--pick-fill); }
+  .inc-list .inc-card[aria-current="true"] .inc-pick { background: var(--pick-fill); }
+}
+
+/*
+ * 선박 카드의 "지도" 칸 — 사고 카드와 같은 규칙. 진행 중인 배는 긴급도 색, 아닌 배는 회색 칸에 잠긴 스위치.
+ * 선박 카드는 안쪽 여백(위아래 8px · 오른쪽 10px)이 달라 칸을 끝까지 붙이는 음수 여백만 다르다.
+ */
+.vessel-card .inc-pick {
+  margin: -8px -10px -8px 0; padding: 4px 0; width: 54px;
+  border: 0; border-radius: 0 calc(var(--r) - 2px) calc(var(--r) - 2px) 0;
+  background: var(--surface-2);
+  transition: background .15s;
+}
+.vessel-card.is-live .inc-pick { background: var(--urg-mute); }
+.vessel-card.is-live:hover .inc-pick { background: rgba(var(--urg-rgb), .8); }
+.vessel-card.is-live.is-picked .inc-pick { background: var(--pick-fill); }
+.vessel-card.is-live[aria-current="true"] .inc-pick { background: var(--pick-fill); }
+.vessel-card.is-live .inc-pick em { color: var(--urg-c); }
+.vessel-card.is-live .inc-pick .sw-track { background: rgba(255, 255, 255, .7); border-color: var(--urg-c); }
+.vessel-card.is-live.is-picked .inc-pick em,
+.vessel-card.is-live[aria-current="true"] .inc-pick em { color: #fff; }
+.vessel-card.is-live.is-picked .inc-pick .sw-track,
+.vessel-card.is-live[aria-current="true"] .inc-pick .sw-track { background: rgba(255, 255, 255, .25); border-color: rgba(255, 255, 255, .8); }
+
+/* 긴급(노랑)의 켜짐·보는 중 칸 — 짙은 겨자빛이 탁해 보여 칸 색만 아주 살짝 밝힌다(#cf9a00 → #dba810).
+   카드 테두리·글자 등 다른 노랑은 그대로 둔다. */
+.inc-card.urg-u.is-picked .inc-pick,
+.inc-list .inc-card.urg-u.is-picked .inc-pick,
+.vessel-card.is-live.urg-u.is-picked .inc-pick,
+.vinc-card[data-urg="urgency"].is-picked .inc-pick { background: var(--pick-fill); }
+.inc-card.urg-u[aria-current="true"] .inc-pick,
+.inc-list .inc-card.urg-u[aria-current="true"] .inc-pick,
+.vessel-card.is-live.urg-u[aria-current="true"] .inc-pick { background: rgba(219, 168, 16, .85); }
+.vessel-card.is-live .inc-pick[aria-checked="true"] .sw-track { background: #fff; border-color: #fff; }
+.vessel-card.is-live .inc-pick[aria-checked="true"] .sw-knob { background: var(--urg-c); box-shadow: none; }
+
+/* 진행 중 사고가 없는 배를 켰을 때 — 회색 토큰 그대로 진한 칸 · 흰 스위치.
+   ⚠ 지난 사고의 긴급도 class(urg-d) 가 남아 있어 --urg-rgb 가 빨강이었다. 진행 중이 아닌 배에
+   빨간 테두리가 도는 것은 거짓말이라 여기서 회색으로 못 박는다(2026-09-17) */
+.vessel-card:not(.is-live) { --urg-rgb: 133, 153, 159; --urg-c: var(--ink-dim); }
+.vessel-card.is-picked:not(.is-live) { border-color: rgba(var(--urg-rgb), .85); }
+.vessel-card.is-picked:not(.is-live) .inc-pick { background: var(--pick-fill); }
+.vessel-card.is-picked:not(.is-live) .inc-pick em { color: #fff; }
+.vessel-card:not(.is-live) .inc-pick[aria-checked="true"] .sw-track { background: #fff; border-color: #fff; }
+.vessel-card:not(.is-live) .inc-pick[aria-checked="true"] .sw-knob { background: var(--urg-c); box-shadow: none; }
+
+@media (max-width: 1200px) {
+  .vessel-list .vessel-card .inc-pick,
+  .vessel-list .vessel-card .inc-pick[aria-checked="true"] { margin: -6px -6px -6px 0; width: 36px; padding: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   좁은 화면 — 왼쪽 목록 머리를 낮게 (2026-09-14)
+   전환 버튼 · 상태 탭 · 정렬을 한 줄에 흘리고, 폭이 모자라면 다음 줄로 내린다.
+   두 목록 묶음(div)은 display:contents 로 투명하게 해서 안쪽 줄들이 패널의 한 흐름에 오게 한다.
+   넓은 화면은 건드리지 않는다.
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1200px) {
+  .pane-pad.list-pane {
+    display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start;
+    column-gap: 14px; row-gap: 6px;
+    padding: 10px 12px 8px;
+  }
+  /*
+   * 두 목록 묶음(div)만 투명하게 만든다.
+   * ⚠ `.pick-summary` 가 목록 밖 직계 자식으로 나오면서(2026-09-18) 이 선택자에 같이 걸렸다.
+   *   display:contents 는 <b>상자를 없앤다</b> — 남색 배경도 같이 사라져 흰 글자만 남아
+   *   "지도에 4건 함께 표시 중"이 통째로 안 보였다. 상자가 있어야 하는 것은 빼 둔다.
+   */
+  .list-pane > div:not([hidden]):not(.pick-summary) { display: contents; }
+
+  /* 전환 버튼 — 글자 폭만큼, 낮게 */
+  .list-pane .seg { flex: none; grid-template-columns: auto auto; gap: 2px; margin: 0; padding: 2px; }
+  .list-pane .seg button { padding: 4px 12px; }
+
+  /* 상태 탭 — 밑줄 탭 그대로 같은 줄에 */
+  .list-pane .ftabs { flex: none; gap: 14px; margin: 0; border-bottom: 0; overflow: visible; }
+  .list-pane .ftab { padding: 5px 0 4px; }
+
+  /* 정렬 — 남은 폭을 채우고 오른쪽 끝으로 */
+  .list-pane .fbar { flex: 1 1 auto; justify-content: flex-end; gap: 14px; margin: 0; padding: 0; }
+
+  /* 지도 표시 요약과 목록은 한 줄을 통째로 쓴다 */
+  .list-pane .pick-summary { flex: 1 0 100%; margin: 0; padding: 4px 10px; }
+  .list-pane .list { flex: 1 0 100%; min-width: 0; }
+
+  /* 칩 줄 스크롤바는 얇게 — 옆으로 미는 것은 그대로 된다 */
+  .list-pane .inc-list,
+  .list-pane .vessel-list {
+    padding: 2px 2px 3px;
+    scrollbar-width: thin; scrollbar-color: var(--line-firm) transparent;
+  }
+
+  /* 칩 — 여백을 줄이고 두 줄 글자 사이를 붙인다 */
+  .list-pane .inc-list .inc-card { padding: 5px 4px 5px 10px; }
+  .list-pane .inc-list .inc-card-top h3 { line-height: 1.35; }
+  .list-pane .inc-list .inc-chip-line { margin-top: 1px; line-height: 1.35; }
+  .list-pane .vessel-list .vessel-card { padding: 3px 4px 3px 10px; }
+  .list-pane .vessel-list .vessel-card-body { padding: 2px 0; }
+  .list-pane .inc-list .inc-card .inc-pick,
+  .list-pane .inc-list .inc-card .inc-pick[aria-checked="true"] { margin: -5px -4px -5px 0; width: 34px; }
+  .list-pane .vessel-list .vessel-card .inc-pick,
+  .list-pane .vessel-list .vessel-card .inc-pick[aria-checked="true"] { margin: -3px -4px -3px 0; width: 34px; }
+
+  /* 칩 안 스위치 — 좁은 칩에 맞춘 작은 크기 */
+  .list-pane .list .sw-track { width: 28px; height: 16px; }
+  .list-pane .list .sw-knob { width: 10px; height: 10px; }
+  .list-pane .list .inc-pick[aria-checked="true"] .sw-knob { transform: translateX(12px); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   로그인 · 가입 신청 (WEB-01 · WEB-02)
+   ══════════════════════════════════════════════════════════ */
+.auth {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 32px 16px; background: var(--bg);
+}
+.auth-brand { display: flex; align-items: center; gap: 10px; }
+.auth-brand .mascot { width: 34px; height: 34px; }
+.auth-card {
+  width: min(420px, 100%); display: flex; flex-direction: column; gap: 14px;
+  padding: 26px 24px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.auth-card.is-wide { width: min(580px, 100%); }
+.auth-card h1 { margin: 0; font-family: Jua, sans-serif; font-weight: 400; font-size: calc(22px * var(--t-k)); }
+.auth-lede { margin: -8px 0 2px; font-size: calc(12px * var(--t-k)); color: var(--ink-mid); line-height: 1.6; }
+
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > span { font-size: calc(12px * var(--t-k)); font-weight: 700; color: var(--ink); }
+.field input,
+.field-select {
+  appearance: none; width: 100%; font: inherit; font-size: calc(13px * var(--t-k)); color: var(--ink);
+  padding: 10px 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--line-firm); background: var(--surface);
+}
+.field input::placeholder { color: var(--ink-dim); }
+.field input:focus,
+.field-select:focus-visible { outline: 2px solid var(--buoy); outline-offset: 1px; border-color: transparent; }
+.field.is-invalid input,
+.field.is-invalid .field-select,
+.field.is-invalid .file-pick { border-color: var(--alert); }
+.field-error { font-style: normal; font-size: calc(11px * var(--t-k)); color: var(--alert); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+
+/* 직접 그린 선택 칸 — 목록은 정렬 메뉴와 같은 모양(.sort-menu) */
+.field-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; text-align: left; }
+.field-select.is-empty { color: var(--ink-dim); }
+.field-select .sort-caret { flex: none; }
+.field-select[aria-expanded="true"] .sort-caret { transform: rotate(180deg); }
+.sort-menu.field-menu { max-height: 280px; overflow: auto; }
+
+/* 파일 첨부 — 기본 파일 입력 대신 버튼 + 파일 이름 */
+.file-pick {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 6px; border-radius: var(--r-sm); border: 1px solid var(--line-firm); background: var(--surface);
+}
+.file-pick .btn { flex: none; }
+.file-name { flex: 1; min-width: 0; font-size: calc(12px * var(--t-k)); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-name.is-empty { color: var(--ink-dim); }
+
+.auth-error {
+  margin: 0; padding: 9px 12px; border-radius: var(--r-sm); font-size: calc(12px * var(--t-k)); line-height: 1.6;
+  color: var(--alert); background: rgba(217, 64, 64, .07); border: 1px solid rgba(217, 64, 64, .3);
+}
+.auth-submit { width: 100%; padding: 11px 14px; font-size: calc(14px * var(--t-k)); }
+.auth-submit:disabled { opacity: .6; cursor: default; }
+.auth-demo { display: flex; align-items: center; gap: 6px; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.auth-demo span { margin-right: auto; }
+.auth-switch { margin: 2px 0 0; text-align: center; font-size: calc(12px * var(--t-k)); color: var(--ink-mid); }
+.link-btn {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-weight: 700; color: var(--sea-ink);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+:root[data-ui="dark"] .link-btn { color: var(--foam); }
+.link-btn:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; border-radius: 2px; }
+.auth-done p { margin: 0; font-size: calc(13px * var(--t-k)); color: var(--ink-mid); line-height: 1.7; }
+.auth-done b { color: var(--ink); }
+
+/* 상단바 — 로그인한 사람 · 로그아웃 */
+.user-role { font-style: normal; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); margin-left: 2px; }
+.logout-btn { white-space: nowrap; }
+
+/*
+ * 상단바가 좁아지면 글자가 한두 글자씩 접혔다("관/제", "계정 관/리") — 2026-09-15.
+ * 글자는 접지 않고, 덜 중요한 것부터 숨긴다.
+ *   1280px 이하  브랜드 옆 화면 이름 · 사용자 역할
+ *   900px 이하   사용자 이름(머리글자 동그라미는 남긴다) · 버튼 여백
+ * 위아래 여백은 건드리지 않는다 — 본문 높이가 상단바 높이로 계산된다(.layout).
+ */
+.brand-sub, .brand-name, .role-btn, .user, .user-role { white-space: nowrap; }
+.topbar-right { min-width: 0; }
+@media (max-width: 1280px) {
+  .topbar { gap: 12px; padding-inline: 16px; }
+  .brand-sub, .user-role { display: none; }
+}
+@media (max-width: 900px) {
+  .topbar-right { gap: 6px; }
+  .role-btn { padding-inline: 10px; }
+  .user { padding: 5px; }
+  .user-name { display: none; }
+}
+.req-empty { margin-bottom: 10px; }
+/* 계정 관리 — 위 탭(통계 · 해경 계정 · 선박 등록)은 상세 패널 탭 모양을 3칸으로, 목록 안 탭(승인 대기 · 처리됨)은
+   왼쪽 사고 목록의 밑줄 탭을 그대로 쓴다. 한 페이지에 다 쌓아 늘어지던 것을 나눴다(2026-09-15) */
+/* 칸 수를 숫자로 적어 두면 탭이 늘거나 줄 때 빈자리가 남는다 — 통계 탭을 뺐더니 둘이 1/3 씩만 쓰고
+   오른쪽이 비었다(2026-09-17). 칸을 세지 말고 있는 만큼 한 줄을 고르게 나눠 쓰게 둔다. */
+.dtabs.admin-tabs {
+  grid-template-columns: none;
+  grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  margin-bottom: 22px;
+}
+/* 좁은 화면 규칙이 .ftabs 에 overflow-x: auto 를 준다. 탭을 1px 내려 밑줄을 겹쳐 둔 탓에 세로로 1px 넘쳐
+   화살표 달린 스크롤바가 생겼다 — 탭 두 개라 가로로 넘칠 일도 없어 넘침을 푼다 */
+.admin-ftabs { margin: 0 0 12px; overflow: visible; }
+/* 승인 목록 쪽 이동 — 다섯 장씩 나눈다. 목록 안 스크롤은 두지 않는다(2026-09-15) */
+.pager { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.pager-range { margin-right: auto; font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.pager .btn { padding: 5px 10px; }
+.pager-no { min-width: 32px; font-variant-numeric: tabular-nums; }
+.pager-no[aria-current="page"] { background: var(--sea-ink); border-color: var(--sea-ink); color: #fff; font-weight: 700; }
+:root[data-ui="dark"] .pager-no[aria-current="page"] { background: var(--foam); border-color: var(--foam); color: var(--abyss); }
+
+/* 표류 추정의 근거. 원만 보여 주면 "조류·바람 다 넣음"과 "바람만"의 차이가 사라진다 */
+.sea-basis {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  margin: 6px 0 0; font-size: calc(11px * var(--t-k)); color: var(--ink-dim);
+}
+.sea-basis small { font-size: calc(10px * var(--t-k)); color: var(--ink-dim); opacity: .8; }
+/* 일부만 있는 추정과 아예 없는 것은 색으로 구분한다. 문구만으로는 지나친다 */
+.sea-basis.is-partial { color: var(--chart-u); }
+.sea-basis.is-none { color: var(--ink-dim); font-style: italic; }
+
+/* 발사 실패 — 물에 부표가 없다. "아직 안 쏨"과 달리 이 배는 부표를 못 쏘는 상태다 */
+.pos-badge.is-none.is-failed { color: var(--chart-d); }
+.pos-badge.is-none.is-failed i { background: var(--chart-d); }
+
+/*
+ * 부표가 물에 없다. 두절(is-off)과 **같은 빨강이되 무게가 다르다** —
+ *   두절      옅은 바탕 · 점선 테두리 · 빈 점   → 흔들리는 상태. 돌아올 수 있다
+ *   발사 안됨 채운 바탕 · 실선 · 찬 점          → 되돌릴 수 없는 사실. 바다에 부표가 없다
+ * 색만으로 가르면 훑을 때 안 보인다. 채움과 선 모양이 두 상태를 가른다.
+ */
+.lora-badge.is-failed {
+  color: #fff; background: var(--alert); border-color: var(--alert); border-style: solid;
+}
+.lora-badge.is-failed i { background: #fff; border: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   새 신고 접수 알림 (데모: 신고 시뮬레이션 버튼)
+   ══════════════════════════════════════════════════════════ */
+
+/*
+ * 관제실의 경광등 자리다. 새 신고가 들어온 것을 놓치면 그 시간이 그대로 손해라
+ * **일부러 과하게** 둔다 — 화면 전체가 빨갛게 점멸한다.
+ *
+ * 움직임을 줄이도록 설정한 사용자에게는 깜빡이지 않는다(아래 prefers-reduced-motion).
+ */
+.alert-veil {
+  /* 지도 위 패널(.map-ui 1200)·수색 모드(1800)보다 위다. 새 신고를 가리는 것은 없어야 한다 */
+  position: fixed; inset: 0; z-index: 2500;
+  display: grid; place-items: center;
+  background: rgba(217, 64, 64, .28);
+  animation: siren 1.1s steps(1, end) infinite;
+}
+@keyframes siren {
+  0%, 49%   { background: rgba(217, 64, 64, .10); }
+  50%, 100% { background: rgba(217, 64, 64, .38); }
+}
+
+.alert-card {
+  width: min(400px, calc(100vw - 32px));
+  padding: 20px 22px 18px;
+  border-radius: var(--r);
+  border: 3px solid var(--alert);
+  background: var(--surface);
+}
+
+.alert-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.alert-head b { font-size: calc(13px * var(--t-k)); letter-spacing: .02em; }
+/* 점멸하는 빨간 점. 테두리 링이 같이 커졌다 사라진다 */
+.alert-siren {
+  width: 10px; height: 10px; border-radius: 50%; flex: none;
+  background: var(--alert);
+  animation: siren-dot 1.1s ease-out infinite;
+}
+@keyframes siren-dot {
+  0%        { box-shadow: 0 0 0 0 rgba(217, 64, 64, .55); }
+  70%, 100% { box-shadow: 0 0 0 11px rgba(217, 64, 64, 0); }
+}
+.alert-urg {
+  margin-left: auto; padding: 2px 8px; border-radius: 2px;
+  font-size: calc(10.5px * var(--t-k)); font-weight: 700;
+  background: var(--alert); color: #fff;
+}
+
+.alert-ship { margin: 0; font-size: calc(24px * var(--t-k)); font-weight: 700; }
+.alert-reg { margin: 2px 0 16px; font-size: calc(12px * var(--t-k)); color: var(--ink-dim); }
+
+.alert-rows { margin: 0 0 18px; display: flex; flex-direction: column; gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.alert-rows > div {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 8px 12px; background: var(--surface); font-size: calc(12.5px * var(--t-k));
+}
+.alert-rows dt { flex: none; width: 68px; color: var(--ink-mid); font-size: calc(11.5px * var(--t-k)); }
+.alert-rows dd { margin: 0; font-weight: 700; }
+
+.alert-go {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(13px * var(--t-k)); font-weight: 700;
+  display: block; width: 100%; padding: 11px;
+  border-radius: 2px; border: 0; background: var(--alert); color: #fff;
+}
+.alert-go:hover { background: #c02a2a; }
+.alert-go:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+/* 깜빡임이 어지러운 사람에게는 색만 남긴다 — 알림 자체를 없애지는 않는다 */
+@media (prefers-reduced-motion: reduce) {
+  .alert-veil { animation: none; background: rgba(217, 64, 64, .3); }
+  .alert-siren { animation: none; }
+}
+
+/* ── 대응 단계 — 손으로 달성하는 칸 (④ 사고자 발견 · ⑤ 종료) ── */
+
+/*
+ * 앞의 셋은 Pi 가 보내는 사실이라 누를 것이 없다. 뒤의 둘만 사람의 판단이다.
+ * 시각이 들어갈 자리에 버튼을 둔다 — 누르면 그 자리가 바로 그 시각이 되니 옮겨 다닐 필요가 없다.
+ */
+.stage-do {
+  /* 시각(.stage-at)과 같은 칸·같은 줄이다. 자동 배치에 맡기면 1열로 가서
+     숫자 칸을 버튼 폭만큼 밀고, 그러면 이름 위치가 다른 칸과 어긋난다(2026-09-17) */
+  grid-column: 3; grid-row: 1; justify-self: end;
+  appearance: none; cursor: pointer; font: inherit;
+  /*
+   * 이 줄에서 <b>사람이 누를 것은 이 둘뿐</b>이다(앞의 셋은 Pi 가 자동으로 찍는다).
+   * 흰 바탕에 회색 테두리로 두었더니 시각을 적어 둔 칸과 구별이 안 됐다 —
+   * 채운 버튼으로 바꿔 이 줄에서 유일하게 색이 있는 덩어리로 만든다(2026-09-17).
+   */
+  /* 높이를 글자에 맡기지 않고 정해 둔다 — 옆 칸의 시각과 같은 값을 써야 띄 높이가 안 바뀜다 */
+  display: inline-flex; align-items: center; min-height: var(--stage-slot);
+  padding: 0 12px; border-radius: 3px;
+  font-size: calc(11.5px * var(--t-k)); font-weight: 700; white-space: nowrap;
+  /* 두 버튼은 같은 모양이다. 앞뒤 순서는 화살표 띠가 이미 말한다(2026-09-18) */
+  border: 1px solid var(--alert); background: var(--alert); color: #fff;
+}
+.stage-do:hover { background: var(--ink); border-color: var(--ink); }
+.stage-do:active { transform: translateY(1px); }
+.stage-do:focus-visible { outline: 2px solid var(--sea-ink); outline-offset: 2px; }
+
+
+/* ── 종결 확인 창 ── */
+
+/*
+ * 되돌릴 수 없는 동작은 **무엇을 종결하는지 문장으로 묻는다.**
+ * 두 번 누르게 하는 방식은 첫 번째 누름이 무슨 뜻인지 알려 주지 못한다(2026-09-17).
+ */
+.ask-veil {
+  position: fixed; inset: 0; z-index: 2400;
+  display: grid; place-items: center;
+  background: rgba(10, 34, 51, .45);
+}
+.ask-card {
+  width: min(360px, calc(100vw - 32px));
+  padding: 22px 22px 18px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-firm); background: var(--surface);
+}
+.ask-card h2 { margin: 0; font-size: calc(16px * var(--t-k)); font-weight: 400; line-height: 1.6; }
+.ask-card h2 b { font-weight: 700; }
+.ask-card p { margin: 10px 0 20px; font-size: calc(12px * var(--t-k)); color: var(--alert); }
+.ask-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ask-no, .ask-yes {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(13px * var(--t-k)); font-weight: 700;
+  padding: 11px; border-radius: 2px;
+}
+.ask-no { border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink-mid); }
+.ask-no:hover { color: var(--ink); border-color: var(--ink-mid); }
+.ask-yes { border: 0; background: var(--alert); color: #fff; }
+.ask-yes:hover { background: #c02a2a; }
+.ask-no:focus-visible, .ask-yes:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+/* 지도 범례의 전부 해제. 한 건씩 × 를 누르는 것보다 빠르다 —
+   왼쪽 목록의 같은 이름 버튼과 동작이 같다(2026-09-17) */
+.legend-top {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 5px; border-bottom: 1px solid var(--line);
+}
+.legend-top .legend-head { flex: 1; min-width: 0; padding-bottom: 0; border-bottom: 0; }
+/* 접기는 바깥에. 전부 해제가 그 안쪽에 들어오게 둔다 */
+.legend-fold {
+  appearance: none; border: 0; background: none; cursor: pointer; flex: none;
+  display: grid; place-items: center; padding: 2px 0 2px 2px; color: var(--ink-dim);
+}
+.legend-fold:hover { color: var(--ink); }
+.legend-fold:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+.legend-clear {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(11px * var(--t-k)); flex: none;
+  padding: 2px 8px; border-radius: 2px;
+  border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink-mid);
+}
+.legend-clear:hover { color: var(--ink); border-color: var(--ink-mid); }
+.legend-clear:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+/* ══════════════════════════════════════════════════════════
+   사고 카드 (2026-09-17)
+   ══════════════════════════════════════════════════════════ */
+
+/* 유형 · 시각 · 경과를 한 줄에. 셋 다 "어떤 사고인가"의 머릿말이다 */
+.inc-card-when {
+  display: flex; align-items: baseline; flex-wrap: nowrap; gap: 2px 7px;
+  margin: 2px 0 9px; font-size: calc(11px * var(--t-k)); color: var(--ink-dim);
+}
+/* 줄이 꺾이면 카드 높이가 변해 목록이 움직인다. 폭이 모자라면 카드가 커지는 대신
+   여기(경과·시각)가 줄어든다 — 단계와 배지는 자리를 지킨다(2026-09-17) */
+.inc-card-when .when-main {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.inc-card-when b { font-size: calc(12.5px * var(--t-k)); font-weight: 700; color: var(--ink); }
+/* ⚠ 배지도 <b> 라 바로 위 규칙에 색·크기를 빼앗긴다(짙은 남색 바탕에 짙은 잉크 글자 = 안 보임).
+   선택자를 한 칸 더 좁혀 되찾는다(2026-09-17) */
+.inc-card-body { position: relative; }
+.inc-card-body > .inc-now-tag { position: absolute; top: 0; right: 0; }
+/* 새 신고 — 줄을 서지 않은 이유라 보는 중보다 세게 말한다 */
+.inc-now-tag.is-new { background: var(--alert); }
+/* 배지 자리는 배지가 없어도 늘 비워 둔다 — 그래야 붙고 떨어져도 줄 수가 변하지 않는다 */
+.inc-card-top { padding-right: 52px; }
+.inc-card-when em { font-style: normal; color: var(--ink-mid); }
+/* 보는 중 · 완료 배지 — 이름 줄이 아니라 이 줄의 오른쪽 끝에 붙는다 */
+.inc-tags { margin-left: auto; display: flex; align-items: center; gap: 5px; flex: none; }
+
+/*
+ * 부표 세 가지를 **한 줄에** 둔다 — 위치가 오는가 · 사람이 잡았는가 · 언제 받았는가.
+ * 이름과 값을 위아래 두 줄로 두면 카드 높이의 절반을 먹어 목록을 훑기 어렵다.
+ */
+/*
+ * 부표 줄은 기호만 남긴다 — 설명은 hover 로 본다. 여기서 필요한 건 있다/없다 둘뿐이고,
+ * 글자를 다 적으면 눈이 그것을 읽느라 멈춘다. 단계는 같은 줄 오른쪽 끝에 낮게 붙인다.
+ */
+.buoy-line {
+  display: flex; align-items: baseline; gap: 12px;
+  margin: 0 0 8px; font-size: calc(11.5px * var(--t-k)); color: var(--ink-mid);
+}
+/*
+ * 한 문장 + 앞의 점. 점 색이 곧 상태라 글자를 읽기 전에 눈에 들어온다.
+ * 정상(ok)은 회색이다 — 다 칠하면 어긋난 것이 안 튄다.
+ */
+.buoy-line .bl-state {
+  display: inline-flex; align-items: center; gap: 5px; min-width: 0;
+  cursor: help; font-weight: 700; color: var(--ink-mid);
+}
+.buoy-line .bl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: currentColor; }
+.buoy-line .bl-tail { font-style: normal; font-weight: 400; color: var(--ink-dim); }
+/* 사람이 안 잡은 것은 색을 못 쓰는 자리라(색은 신호가 쓴다) 굵기로 말한다(2026-09-18) */
+.buoy-line .bl-tail.is-notheld { font-weight: 700; color: var(--ink); }
+/* 정상은 초록. 회색으로 두면 "아무 일 없음"이 아니라 "값이 없음"처럼 읽혔다(2026-09-17) */
+.buoy-line .tone-ok   { color: var(--ok); }
+.buoy-line .tone-warn { color: var(--warn); }
+.buoy-line .tone-bad  { color: var(--alert); }
+/* 단계는 시각 줄 오른쪽 끝에 낮게 붙는다 */
+.inc-card-when .when-stage { margin-left: auto; flex: none; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.buoy-line .bl-state { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 상세 패널에서는 같은 줄이 제목 오른쪽에 앜는다 — 카드와 같은 모양을 그대로 쓴다 */
+.buoy-line.bl-inline { margin: 0; justify-content: flex-end; }
+.buoy-line.bl-inline .bl-state { white-space: normal; }
+
+/*
+ * 남은 시간 막대. 숫자는 읽어야 알지만 길이는 읽기 전에 보인다 —
+ * 카드가 여러 장일 때 "누가 제일 급한가"를 훑는 데 이게 제일 빠르다.
+ */
+.inc-left { display: flex; align-items: center; gap: 8px; margin: 0; cursor: help; }
+.inc-left .il-bar {
+  flex: 1; height: 5px; border-radius: 3px; overflow: hidden;
+  background: color-mix(in srgb, var(--urg-c) 16%, transparent);
+}
+.inc-left .il-bar i { display: block; height: 100%; background: var(--urg-c); }
+.inc-left .il-txt {
+  flex: none; font-size: calc(11.5px * var(--t-k)); font-weight: 700; color: var(--urg-c);
+  font-variant-numeric: tabular-nums;
+  /* 막대 동생을 항상 같은 폭으로 — '1분 남음'과 '1시간 33분 남음' 이 길이를 바꾸면
+     막대가 재는 것이 급한 정도가 아니라 글자 수가 된다(2026-09-18) */
+  min-width: calc(92px * var(--t-k)); text-align: right;
+}
+/* 단위말은 숫자보다 물러난다 — 뭐인지만 알려 주고 읽히는 것은 숫자여야 한다 */
+.inc-left .il-txt em { font-style: normal; font-weight: 400; margin-left: 3px; opacity: .8; }
+
+/*
+ * 카드 색 = **지금 얼마나 급한가**. 긴급도(조난·긴급)로 칠하면 관제에 오는 사고가
+ * 대부분 조난이라 전부 같은 빨강이 되어 색이 아무것도 구분해 주지 못한다(2026-09-17).
+ *   hot   30분 이내 · 상한의 80% 경과 · 초과
+ *   warm  1시간 이내 · 절반 경과
+ *   calm  그 밖 · 종결
+ */
+.inc-card.lv-hot  { --urg-rgb: 217, 64, 64;      --urg-c: var(--alert); }
+.inc-card.lv-warm { --urg-rgb: var(--warn-rgb);  --urg-c: var(--warn); }
+.inc-card.lv-calm { --urg-rgb: 133, 153, 159;    --urg-c: var(--ink-dim); }
+/*
+ * 테두리를 오른쪽 `지도` 칸과 <b>같은 색</b>으로 둔다(--urg-mute).
+ * 전에는 테두리만 var(--line) 고정이라 급한 정도가 칸에만 보이고
+ * 카드 선은 세 장 다 같았다 — 한 카드 안에서 색이 두 가지였다(2026-09-17).
+ */
+.inc-card { border-color: var(--urg-mute); }
+
+/* 경과 시간이 카드에서 제일 큰 글씨다. 새 신고는 이 숫자가 작아서 눈에 띈다 */
+.inc-elapsed { font-size: calc(15px * var(--t-k)); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* ⚠ 이제 .when-main 안의 인라인이라 부모 flex 의 gap 이 닿지 않는다 — 여백을 직접 준다 */
+.inc-clock { margin-left: 7px; font-size: calc(10.5px * var(--t-k)); color: var(--ink-dim); }
+
+/* 단계는 부표 줄 오른쪽에 붙어 별도 줄을 쓰지 않는다 */
+.inc-card-foot { display: none; }
+
+/*
+ * 종결된 사고의 결과 — 진행 중 화면에서 "위치"가 앉아 있던 자리다.
+ * 걸린 시간만 크게 두고 나머지는 근거로 작게 깐다.
+ */
+.inc-outcome .oc-line { margin: 0; font-size: calc(12.5px * var(--t-k)); color: var(--ink-mid); }
+.inc-outcome .oc-line b { font-size: calc(20px * var(--t-k)); font-weight: 700; color: var(--ink); margin-right: 4px; }
+.inc-outcome .oc-when { margin: 2px 0 0; font-size: calc(11px * var(--t-k)); color: var(--ink-dim); }
+.inc-outcome .oc-facts { margin-top: 10px; }
+
+/*
+ * 다섯 단계의 시각. 신고 줄(.rs-row)과 같은 짜임이다 — 이름 왼쪽, 시각 오른쪽 끝.
+ * ol 의 기본 번호는 쓰지 않는다. 들여쓰기가 제멋대로 생기고 번호가 시각보다 굵게 보였다.
+ */
+.oc-stages {
+  list-style: none; margin: 10px 0 0; padding: 0;
+  display: flex; flex-direction: column;
+  counter-reset: oc;
+}
+.oc-stages li {
+  display: grid; grid-template-columns: 15px 1fr auto; gap: 8px;
+  align-items: baseline; padding: 4px 0;
+  font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim);
+  border-bottom: 1px solid var(--line);
+}
+.oc-stages li:last-child { border-bottom: 0; }
+.oc-stages li::before {
+  counter-increment: oc; content: counter(oc);
+  font-size: calc(10px * var(--t-k)); font-weight: 700; color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+.oc-stages li b {
+  font-size: calc(11.5px * var(--t-k)); font-weight: 400; color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+/* 달성한 단계만 글자를 살린다 — 못 지난 단계는 — 하나로 남아 바로 눈에 띈다 */
+.oc-stages li.is-done { color: var(--ink); }
+.oc-stages li.is-done b { font-weight: 700; color: var(--ink); }
+.oc-stages li.is-done::before { color: var(--ok); }
+
+.inc-outcome .oc-report { margin-top: 12px; width: 100%; }
+
+/*
+ * 눈 색은 라벨과 같다. 같은 상태를 말하는 둘이 따로 놀면 안 된다 —
+ * 스위치가 있던 자리라 .sw-track 에 걸려 있던 색 규칙을 눈으로 옮긴 것이다(2026-09-17).
+ */
+.inc-pick em { font-size: calc(9.5px * var(--t-k)); line-height: 1.25; }
+.inc-card .inc-pick .eye { color: var(--urg-c); }
+.inc-card.is-picked .inc-pick .eye,
+.inc-card[aria-current="true"] .inc-pick .eye { color: #fff; }
+.vessel-card .inc-pick .eye { color: var(--ink-dim); }
+.vessel-card.is-live .inc-pick .eye { color: var(--urg-c); }
+.vessel-card.is-picked .inc-pick .eye,
+.vessel-card.is-live[aria-current="true"] .inc-pick .eye { color: #fff; }
+.vinc-card .inc-pick .eye { color: var(--urg-c); }
+.vinc-card.is-picked .inc-pick .eye { color: #fff; }
+
+/*
+ * ── 지도 표시 열쇠 ──
+ * 범례 패널(사고별 목록)을 걷어낸 자리. 두 줄뿐이고, <b>범례이면서 스위치다</b> —
+ * 지도의 주황 점이 부표, 빨간 점선 원이 사람이라는 것을 여기 말고 적어 둔 데가 없었다.
+ * 모양을 그려 두니 "이게 왜 있나"가 자리를 더 쓰지 않고 풀린다(2026-09-17).
+ */
+.map-key { padding: 5px; display: flex; flex-direction: column; gap: 1px; }
+.key-row {
+  appearance: none; border: 0; background: none; font: inherit; cursor: pointer;
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 2px;
+  font-size: calc(11.5px * var(--t-k)); font-weight: 700; color: var(--ink);
+}
+.key-row:hover { background: var(--surface-2); }
+.key-row:focus-visible { outline: 2px solid var(--buoy); outline-offset: -2px; }
+/* 내린 줄은 통째로 흐리다 — 눈의 사선만으로는 훑을 때 안 걸린다 */
+.key-row[aria-checked="false"] { color: var(--ink-dim); }
+.key-row[aria-checked="false"] .key-mk { opacity: .4; }
+
+/* 지도 마커를 그대로 줄여 그린다. 색·테두리가 다르면 범례 구실을 못 한다 */
+.key-mk { display: block; width: 18px; height: 18px; border-radius: 50%; justify-self: center; }
+.key-buoy { background: #ff8a4c; border: 2px solid #fff; box-shadow: 0 0 0 2px rgba(255, 138, 76, .3); }
+.key-person { background: none; border: 2px dashed var(--alert); }
+
+/*
+ * 오른쪽 상세 패널 글자 최저선 — 11.5px. 10~11px 이 일곱 군데 섞여 있었고
+ * 그 크기에 옅은 회색(#85999f, 흰 바탕 명암비 2.6:1)이라 "안 읽힌다"는 말이 나왔다(2026-09-18).
+ * 왼쪽 목록은 칩이 촘촘해야 해서 건드리지 않는다 — 그래서 :not(.list-pane) 으로 잠근다.
+ */
+.pane-pad:not(.list-pane) :is(.eyebrow, .ocean-sub, .ocean-caret, .hist-when, .inc-dsc,
+  .coord-copy, .urg-tag, .badge, .dtab-count, small) { font-size: calc(11.5px * var(--t-k)); }
+/* 항목 이름·부가 정보는 중간 회색까지만. 옅은 회색은 참고 문구(.src-note)에만 남긴다 */
+.pane-pad:not(.list-pane) :is(.eyebrow, .ocean-sub, .hist-when, .inc-dsc, small) { color: var(--ink-mid); }
+
+/*
+ * 경위도 눈금 글자 — 격자선이 화면 왼쪽·아래 끝과 만나는 자리에 값을 적는다.
+ * 눈금선만 있으면 "지도가 떴다"는 알지만 "여기가 어디냐"는 모른다(2026-09-18).
+ * 해도 표기(35° 06.5′ N)를 쓴다 — 소수 도는 해상에서 쓰는 표기가 아니다.
+ */
+.grid-label {
+  font-size: calc(12px * var(--t-k)); font-weight: 700; line-height: 1;
+  font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums;
+  /*
+   * 흰 글자 + 어두운 테두리. 지도 위에는 어두운 막이 깔리고 사고 중에는 더 진해지는데,
+   * 회색 글자로는 그 위에서 읽히지 않았다. 마커 라벨(.mk-label)과 같은 방식이다(2026-09-18).
+   */
+  color: #fff; white-space: nowrap;
+  text-shadow: 0 0 3px rgba(4, 16, 26, .95), 0 0 3px rgba(4, 16, 26, .95);
+}
+/* 위도는 오른쪽 끝에서 왼쪽으로, 경도는 아래 끝에서 위로 붙는다 */
+.grid-label.grid-lat { justify-items: end; padding-right: 6px; }
+.grid-label.grid-lon { align-items: end; padding-bottom: 5px; }
+
+/*
+ * 수색 모드 오른쪽 패널 — 상세 패널과 같은 규칙을 적용한다(2026-09-18).
+ * 글자 최저선 11.5px · 회색은 두 단계(항목 이름 --ink-mid · 참고 문구만 --ink-dim).
+ * 여기만 10~11px 옅은 회색이 남아 있어 "업데이트가 안 됐다"는 말이 나왔다.
+ */
+.sm-side :is(.eyebrow, .sm-coord-sub, .sm-legend, .sm-facts dt, .sm-facts dd .mono,
+  .sm-next-label, small) { font-size: calc(11.5px * var(--t-k)); }
+.sm-side :is(.eyebrow, .sm-coord-sub, .sm-legend, .sm-facts dt, .sm-facts dd .mono,
+  .sm-next-label) { color: var(--ink-mid); }
+.sm-side .src-note { font-size: calc(11.5px * var(--t-k)); color: var(--ink-dim); }
+
+/* 설명 펼치기 — 현장에서는 접어 두고, 필요할 때만 연다 */
+.sm-note-toggle {
+  appearance: none; cursor: pointer; font: inherit; font-size: calc(11.5px * var(--t-k)); font-weight: 700;
+  margin: 2px 0 0; padding: 6px 10px; width: 100%; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--ink-mid);
+}
+.sm-note-toggle:hover { border-color: var(--line-firm); color: var(--ink); }
+.sm-note-toggle:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; }
+
+/*
+ * 추정을 포기했을 때의 알림. 경고색으로 두지 않는다 — 사고가 위험하다는 뜻이 아니라
+ * <b>화면이 모른다</b>는 뜻이라, 빨강으로 칠하면 사고의 긴급도와 섞여 읽힌다(2026-09-18).
+ */
+.beyond-note {
+  margin: 0 0 10px; padding: 8px 10px; border-radius: 2px;
+  background: var(--surface-2); border-left: 3px solid var(--ink-dim);
+  font-size: calc(11px * var(--t-k)); color: var(--ink-dim); line-height: 1.65;
+}
+.beyond-note b { display: block; margin-bottom: 2px; font-size: calc(11.5px * var(--t-k)); color: var(--ink); }
+
+/*
+ * ── 장기 미종결 ──
+ * 의식 유지 상한의 두 배가 지나도 안 닫힌 사고(lib/survival.ts STALE_RATIO).
+ *
+ * 색은 <b>긴급도 축이 아니다</b>. 빨강·노랑은 "빨리 가라"는 뜻인데 여기엔 그 뜻이 없다 —
+ * 짙은 남색은 종결된 사고의 마지막 단계 칸에도 쓰는 색이라 "끝났거나 끝나야 할 것"으로 읽힌다.
+ * calm 의 밝은 회색과는 명도가 크게 갈려 "여유 있음"과 안 헷갈린다.
+ *
+ * 테두리는 점선이다 — 색이 "지나간 것", 점선이 "확정되지 않은 것"을 말한다.
+ * 장기 미종결이 정확히 그 둘의 교집합이다(2026-09-19).
+ */
+.inc-card.lv-stale { --urg-rgb: 15, 58, 82; --urg-c: var(--sea-ink); }
+.inc-card.lv-stale { border-style: dashed; }
+/*
+ * 🔴 점선 테두리에는 <b>안쪽 선을 겹치지 않는다.</b> 지도에 올렸거나 보고 있는 카드는
+ * inset 그림자로 테두리를 한 겹 더 두르는데, 점선과 겹치면 <b>점선 안에 실선</b>이
+ * 한 줄 더 생겨 카드가 두 겹으로 보였다(2026-09-20).
+ * 상태는 점선 하나로 충분하다 — 장기 미종결은 지도에 올렸는지가 중요한 카드가 아니다.
+ */
+.inc-card.lv-stale,
+.inc-card.lv-stale.is-picked,
+.inc-card.lv-stale[aria-current="true"] { box-shadow: none; }
+.inc-card.lv-stale .il-bar { background: color-mix(in srgb, var(--sea-ink) 14%, transparent); }
+.inc-card.lv-stale .il-txt em { font-weight: 400; color: var(--ink-dim); }
+
+/*
+ * ── 목록 검색 ──
+ * 사고 · 기록 · 등록 선박 · 계정 관리가 같은 상자를 쓴다(components/SearchBox.tsx).
+ * 정렬 왼쪽에 놓이고, 남는 폭을 먹되 너무 길어지지 않게 상한을 둔다.
+ */
+.searchbox {
+  flex: 1 1 auto; max-width: 260px; min-width: 0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 8px; height: calc(26px * var(--t-k));
+  border: 1px solid var(--line); border-radius: 2px; background: var(--surface);
+  color: var(--ink-dim);
+}
+.searchbox:focus-within { border-color: var(--sea-ink); color: var(--ink-mid); }
+.searchbox .sb-ico { flex: none; }
+.searchbox input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: none; padding: 0;
+  font: inherit; font-size: calc(11.5px * var(--t-k)); color: var(--ink);
+}
+.searchbox input::placeholder { color: var(--ink-dim); }
+/* 브라우저가 붙이는 기본 × 는 끈다 — 우리 것이 따로 있고 둘이 겹쳐 보인다 */
+.searchbox input::-webkit-search-cancel-button { appearance: none; }
+.sb-hits {
+  flex: none; font-size: calc(10.5px * var(--t-k)); font-weight: 700;
+  color: var(--ink-dim); font-variant-numeric: tabular-nums;
+}
+/* 0 건은 색으로 말한다 — 숫자만 보면 "0"을 놓치고 목록이 빈 이유를 못 찾는다 */
+.sb-hits.is-none { color: var(--alert); }
+.sb-x {
+  flex: none; appearance: none; border: 0; background: none; cursor: pointer;
+  width: 16px; height: 16px; display: grid; place-items: center; border-radius: 2px;
+  font: inherit; font-size: 14px; line-height: 1; color: var(--ink-dim);
+}
+.sb-x:hover { background: var(--surface-2); color: var(--alert); }
+
+/* 위 탭·아래 목록 둘 다와 떨어뜨린다. 붙여 두면 탭의 일부처럼 보인다 */
+.admin-search { margin: 16px 0 14px; }
+.admin-search .searchbox { max-width: 320px; }
+
+
+
+
+/*
+ * 지금 단계의 맥박 — 채운 빨간 칸 위의 흰 점.
+ *
+ * 2.4초 주기로 느리게 뛴다. 빠르면 재촉으로 읽히는데 이건 재촉이 아니라 "여기 머물러 있다"다.
+ * 종결 사고의 남색 칸에는 붙이지 않는다(StageBoard live 조건) — 끝난 일은 뛰지 않는다.
+ */
+.now-beat {
+  display: inline-block; flex: none; vertical-align: 1px;
+  width: 6px; height: 6px; margin-left: 6px; border-radius: 50%;
+  background: #fff;
+  animation: now-beat 2.4s ease-in-out infinite;
+}
+@keyframes now-beat {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 255, 255, .55); }
+  55% { opacity: .35; box-shadow: 0 0 0 5px rgba(255, 255, 255, 0); }
+}
+/* 움직임을 줄이도록 설정한 사용자에게는 뛰지 않고 점만 남는다 */
+@media (prefers-reduced-motion: reduce) { .now-beat { animation: none; } }
+
+/* 종결·발견을 서버에 못 남겼을 때의 한 줄. 단계 바 바로 아래 — 방금 누른 그 자리에서 읽힌다.
+   빨강 테두리 한 줄로 충분하다. 모달로 막으면 급한 사고를 보던 손을 붙잡는다 */
+.save-fail {
+  display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+  background: color-mix(in srgb, var(--alert) 10%, var(--surface));
+  border-bottom: 1px solid var(--alert);
+  color: var(--ink); font-size: calc(12.5px * var(--t-k));
+}
+.save-fail button {
+  margin-left: auto; appearance: none; font: inherit; cursor: pointer;
+  padding: 3px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--line-firm); background: var(--surface); color: var(--ink);
+}

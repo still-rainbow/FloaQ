@@ -1,0 +1,45 @@
+[project]
+name = "floaq-ai"
+version = "0.1.0"
+description = "해상 person/animal/float 탐지 AI·CV 모듈"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "ultralytics>=8.3,<9",
+    "torch>=2.5",
+    "torchvision>=0.20",
+    "opencv-python>=4.10,<5",
+    "PyYAML>=6.0,<7",
+    "numpy>=1.26,<3",
+    "pandas>=2.2,<3",
+    "matplotlib>=3.8,<4",
+    "jupyterlab>=4.2,<5",
+    "roboflow>=1.1",
+    "ipykernel>=7.3.0",
+    "lap>=0.5.12",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.7",
+]
+
+[tool.uv]
+# src/ 는 `python -m src.train` 으로 실행하는 로컬 모듈이므로 빌드·설치하지 않는다.
+package = false
+
+# torch 는 반드시 cu126 인덱스에서 받는다. 이유 두 가지:
+#  1) 기본 PyPI 의 torch 는 cu130 빌드다. 드라이버가 570.x (CUDA 12.8) 이므로
+#     설치·import 는 되지만 torch.cuda.is_available() 이 조용히 False 가 된다.
+#  2) cu128 빌드는 sm_70 커널을 포함하지 않는다. 학습 GPU 인 Tesla V100S 가
+#     sm_70 이라 "no kernel image is available" 로 런타임에 죽는다.
+#     cu126 빌드는 sm_50~sm_90 을 모두 포함한다.
+# GPU 나 드라이버가 바뀌면 이 인덱스를 재검토할 것.
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }

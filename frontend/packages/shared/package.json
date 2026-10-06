@@ -1,0 +1,31 @@
+{
+  "name": "@floaq/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/styles/tokens.css",
+    "./mqtt": "./src/mqtt/index.ts",
+    "./staleness": "./src/staleness.ts",
+    "./origins": "./src/origins.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "mqtt": "5.15.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^7.0.0"
+  }
+}

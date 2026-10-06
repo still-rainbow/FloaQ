@@ -1,0 +1,27 @@
+# Selected demonstration model configuration (2026-09-18).
+data: experiments/demo/datasets/a208_demo_v8/data.yaml
+class_names:
+  - animal
+  - fish
+  - float
+  - person
+primary_target_class: person
+model: models/yolo11s.pt
+epochs: 50
+imgsz: 960
+batch: 16
+workers: 8
+device: 0
+seed: 42
+deterministic: true
+optimizer: auto
+mosaic: 1.0
+mixup: 0.0
+cutmix: 0.0
+close_mosaic: 10
+project: experiments/demo/runs/shared
+name: v8_yolo11s_seed42
+exist_ok: false
+split: val
+conf: 0.25
+iou: 0.7

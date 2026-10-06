@@ -1,0 +1,141 @@
+# EC2 운영. nginx 만 호스트 포트를 연다.
+
+# 프로젝트 이름을 디렉터리 이름에서 유추하지 않는다.
+# 배포 디렉터리를 옮기면 다른 프로젝트가 되어 볼륨(pgdata·redisdata)이 새로 만들어진다 —
+# PostgreSQL 데이터가 빈 볼륨으로 갈아끼워지고, 조용히 일어난다.
+#
+# ⚠ 이 값을 바꾸면 infra_pgdata 가 버려진다. 절대 바꾸지 말 것.
+name: infra
+
+services:
+  app:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: floaq-app
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      DATA_GO_KR_KEY: ${DATA_GO_KR_KEY}
+      KMA_APIHUB_KEY: ${KMA_APIHUB_KEY}
+      # NIFS 는 API 마다 키가 따로 나온다 — 공용 키가 없다
+      NIFS_RISA_KEY: ${NIFS_RISA_KEY}
+      NIFS_REDTIDE_KEY: ${NIFS_REDTIDE_KEY}
+      NIFS_JELLY_KEY: ${NIFS_JELLY_KEY}
+      # Pi 등록 키. 선박 등록(POST /api/pi/ships)에만 쓴다 — 비면 등록이 401
+      # 그 뒤 모든 Pi 요청은 등록 때 발급된 선박 키다 (설정값이 아니라 DB 에 해시로 있다)
+      FLOAQ_PI_ENROLL_KEY: ${FLOAQ_PI_ENROLL_KEY}
+      FLOAQ_KIOSK_KEY: ${FLOAQ_KIOSK_KEY}  # kiosk 해역 이동 키. 비면 이동만 거부, 조회는 정상
+      FLOAQ_JWT_SECRET: ${FLOAQ_JWT_SECRET}  # 웹 로그인 서명 키. 비면 재시작마다 로그인이 풀린다
+      # 사고 영상·프레임 저장소 (Cloudflare R2). 비면 업로드·재생만 막히고 나머지는 그대로 돈다.
+      # ⚠ env_file 이 아니라 여기 나열하는 방식이라, .env 에만 넣으면 컨테이너에 안 들어간다
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      TZ: Asia/Seoul
+    expose: ["8080"]              # 호스트에 노출하지 않는다. nginx 만 접근
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    volumes:
+      - ./logs:/logs     # 컨테이너가 죽어도 남아야 한다
+    healthcheck:
+      # 종합 /actuator/health 는 외부 API 하나만 DOWN 이어도 503 이다.
+      # 해양 공공데이터가 흔들렸다고 앱을 재시작하면 안 된다.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9090/actuator/health/liveness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    stop_grace_period: 30s        # 기본 10초. SIGKILL 되면 종료 시 남길 산출물이 날아간다
+    logging:
+      driver: json-file
+      options: { max-size: "100m", max-file: "3", mode: "non-blocking" }
+    restart: unless-stopped
+
+  postgres:
+    # TimescaleDB. buoy·imu 가 하이퍼테이블이라 확장이 적재된 이미지여야 한다 (V1__init.sql ⑤).
+    # -oss = Apache-2.0 빌드. 압축·연속집계(TSL 전용)를 쓰지 않으므로 라이선스 질문 자체를 없앤다.
+    # ⚠ postgres:17-alpine 으로 만든 기존 pgdata 볼륨에는 확장이 없다 —
+    #   첫 전환 때 `docker compose down -v` 로 볼륨을 지우고 다시 올린다. 배포 전이라 가능하다.
+    image: timescale/timescaledb:2.21.3-pg17-oss
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Asia/Seoul
+    volumes:
+      - pgdata:/var/lib/postgredatabase/data
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "100m", max-file: "3", mode: "non-blocking" }
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy noeviction
+      --appendonly yes
+    # AOF rewrite 의 fork + copy-on-write 때문에 순간적으로 크게 는다. maxmemory 의 2배.
+    mem_limit: 512m
+    volumes:
+      - redisdata:/data
+      - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: json-file
+      options: { max-size: "100m", max-file: "3", mode: "non-blocking" }
+    restart: unless-stopped
+
+  # mosquitto 를 뺐다 (2026-09-11). 선박↔서버는 REST only 로 확정 —
+  # Pi 가 이미 두절 대비 SQLite 큐를 갖고 있어 브로커 측 큐잉이 중복이었고,
+  # 전송 계층이 둘이면 재전송·멱등 처리도 두 벌이 된다(계획.md §1).
+  # MQTT 는 선내에만 남고 브로커는 Pi 에 있다(ref/mqtt.md).
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports: ["80:80", "443:443"]
+    volumes:
+      # nginx.conf 와 conf.d 를 반드시 함께 마운트한다.
+      # nginx.conf 단독으로 nginx -t 하면 gzip 중복 선언이 통과해 버린다.
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # apps/web 빌드 산출물
+      - ../frontend/apps/web/dist:/usr/share/nginx/html:ro
+      # kiosk 공개 시연판. **kiosk.floaq.example.com** 가 루트에서 서빙한다 (2026-09-18, conf.d/kiosk.conf).
+      # 선내 배포판과 다른 빌드다 — --mode fixture · VITE_DEMO=1 · VITE_KIOSK_KEY 없음
+      - ../frontend/apps/kiosk/dist:/usr/share/nginx/kiosk:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on: [app]
+    logging:
+      driver: json-file
+      options: { max-size: "100m", max-file: "3", mode: "non-blocking" }
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM;
+      while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done'
+
+volumes:
+  pgdata:
+  redisdata:

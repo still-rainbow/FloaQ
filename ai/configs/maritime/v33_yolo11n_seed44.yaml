@@ -1,0 +1,34 @@
+# Selected maritime model configuration (2026-09-18).
+data: experiments/maritime/datasets/local/a208_v33/data.yaml
+class_names:
+  - animal
+  - float
+  - person
+  - person_with_float
+primary_target_class: person
+model: models/yolo11n.pt
+epochs: 50
+imgsz: 640
+batch: 16
+workers: 8
+device: 0
+seed: 44
+deterministic: true
+optimizer: SGD
+lr0: 0.005
+lrf: 0.01
+momentum: 0.9
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+warmup_bias_lr: 0.0
+mosaic: 1.0
+mixup: 0.0
+cutmix: 0.0
+close_mosaic: 10
+project: experiments/maritime/runs/shared
+name: v33_yolo11n_seed44
+exist_ok: false
+split: val
+conf: 0.19
+iou: 0.7

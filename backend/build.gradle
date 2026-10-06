@@ -1,0 +1,97 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.floaq'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    // 로컬 JDK 버전과 무관하게 21로 고정. 없으면 Gradle이 받아온다.
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+repositories { mavenCentral() }
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // 관제 웹 로그인 — JWT(docs/api.md §1.1). 발급·검증은 Spring Security 의 Nimbus 구현에 맡긴다.
+    // ⚠ SecurityConfig 의 필터 체인이 actuator·/api/edge·/api/ocean 을 열어 둔다. 체인을 지우면
+    //   자동 설정이 전 엔드포인트에 HTTP Basic 을 걸어 9090 actuator 까지 잠기고,
+    //   compose healthcheck 가 401 로 실패해 app 이 영구 unhealthy 가 된다.
+    implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // 외부 공공데이터 호출용 WebClient. MVC 안에서 block() 으로 동기 호출하되
+    // 타임아웃을 반드시 건다 — 없으면 외부가 느릴 때 톰캣 스레드가 고갈된다.
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Swagger / OpenAPI. 2.8.6 이 최신이고 MotionTok(부트 4.1.0)에서 실제로 돌고 있다.
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+
+    // MQTT 는 선내(kiosk↔Pi↔Jetson)에만 있고 브로커는 Pi 다.
+    // 선박↔서버는 REST only 로 확정(2026-09-11) — spring-integration-mqtt 를 제거했다.
+    // Pi 가 이미 두절 대비 SQLite 큐를 갖고 있어 브로커 측 큐잉이 중복이었다.
+
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // 스키마는 앱이 바꾸지 않는다. 운영은 ddl-auto=validate + Flyway
+    // ⚠ 부트 4 는 자동설정을 기술별 모듈로 쪼갰다. flyway-core 만 넣으면
+    //   라이브러리는 있는데 **자동설정이 없어 조용히 아무 일도 안 한다** —
+    //   spring.flyway.enabled=true 로 두고도 마이그레이션이 실행되지 않고 로그도 없다.
+    //   운영에서 ddl-auto=validate 가 "테이블이 없다"로 터질 때까지 안 드러난다.
+    implementation 'org.springframework.boot:spring-boot-flyway'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+
+    // Cloudflare R2 (S3 호환) — 사고 영상·프레임 저장. Pi 는 R2 키를 갖지 않고 EC2 만 올린다(계획.md §9.6).
+    //
+    // 버전 2.46.7 은 Maven Central 실조회(2026-09-16). 웹 검색 결과는 BOM·s3 가 서로 어긋나 쓰지 않았다.
+    // BOM 을 쓰는 이유: s3 와 presigner 등 같은 group 의 모듈 버전을 한 곳에서 맞춘다.
+    //
+    // 🔴 R2 는 두 가지를 반드시 꺼야 한다 (ObjectStorage 참고). 안 끄면 업로드가 전부 실패한다 —
+    //    checksum(CRC32) 기본 부착 · chunked transfer encoding(서명 불일치 403).
+    // PDF 텍스트 추출기. 수과원 해파리 주간보고는 수치가 첨부 PDF 안에만 있다.
+    //
+    // 🔴 직접 파싱하지 않는다. 그 PDF 는 CID 폰트에 ToUnicode CMap 을 쓰고(2026-09-18 실측)
+    //    글리프 번호를 문자로 되돌려야 한다 — 손으로 짠 파서는 `해파리` 를 `10모` 로 읽었다.
+    // ⚠ 93%가 JPEG 지도라 이미지는 안 본다. 우리가 쓰는 수치는 텍스트층에 있다.
+    implementation 'org.apache.pdfbox:pdfbox:3.0.3'
+
+    // tar 판독기. Pi 가 보내는 사고 산출물 타르볼(POST /api/pi/archives)을 푼다.
+    //
+    // 🔴 직접 파싱하지 않는다. tar 는 형식이 단순해 60줄이면 읽히지만, 여기 들어오는 것은
+    //    **신뢰할 수 없는 입력**이다 — 경로 탈출(`../`)·심볼릭 링크·크기 거짓말·tar 폭탄을
+    //    직접 쓴 파서로 다 막는 것보다 검증된 구현을 쓰는 쪽이 싸다.
+    // gzip 은 JDK(java.util.zip.GZIPInputStream)에 있어 따로 안 받는다.
+    implementation 'org.apache.commons:commons-compress:1.27.1'
+
+    implementation platform('software.amazon.awssdk:bom:2.46.7')
+    implementation 'software.amazon.awssdk:s3'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') { useJUnitPlatform() }
+
+// Portable checks do not require PostgreSQL, TimescaleDB or Redis.
+// The original test task still includes integration tests.
+tasks.register('unitTest', Test) {
+    description = 'Run tests that do not need live infrastructure.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    exclude '**/FloaqApplicationTests.class'
+    exclude '**/AccidentQuerySqlTest.class'
+    exclude '**/PiShipSqlTest.class'
+    exclude '**/PiIngestSqlTest.class'
+}

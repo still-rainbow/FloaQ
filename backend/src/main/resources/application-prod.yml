@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate.ddl-auto: validate
+    show-sql: false
+  data.redis:
+    host: redis
+    port: 6379
+app.auth.seed-demo-accounts: false
+management.server.address: 127.0.0.1
+logging:
+  level.com.floaq: INFO
+  file.name: /logs/floaq.log
+springdoc:
+  api-docs.enabled: false
+  swagger-ui.enabled: false

@@ -1,0 +1,58 @@
+[project]
+name = "iot-pi"
+version = "0.1.0"
+description = "Raspberry Pi IoT application"
+readme = "README.md"
+requires-python = "==3.13.5"
+dependencies = [
+    "Adafruit-Blinka==9.1.0",
+    "Adafruit-Blinka-Raspberry-Pi5-Neopixel==1.0.0rc2",
+    "adafruit-circuitpython-busdevice==5.2.17",
+    "adafruit-circuitpython-connectionmanager==3.1.8",
+    "adafruit-circuitpython-motor==3.4.20",
+    "adafruit-circuitpython-pca9685==3.4.22",
+    "adafruit-circuitpython-register==1.12.0",
+    "adafruit-circuitpython-requests==4.1.17",
+    "adafruit-circuitpython-servokit==1.3.24",
+    "adafruit-circuitpython-typing==1.12.3",
+    "Adafruit-PlatformDetect==3.89.1",
+    "Adafruit-PureIO==1.1.11",
+    "binho-host-adapter==0.1.6",
+    "certifi==2026.7.22",
+    "charset-normalizer==3.4.9",
+    "fastapi>=0.141.1",
+    "idna==3.18",
+    "lgpio==0.2.2.0",
+    "paho-mqtt==2.1.0",
+    "pydantic>=2.13.5",
+    "pyftdi==0.57.2",
+    "pyserial==3.5",
+    "python-dotenv==1.0.1",
+    "pyusb==1.3.1",
+    "requests==2.32.3",
+    "rpi-lgpio==0.6",
+    "rpi_ws281x==5.0.0",
+    "smbus2>=0.6.1",
+    "sysv_ipc==1.2.0",
+    "typing_extensions==4.16.0",
+    "urllib3==2.7.0",
+    "uvicorn>=0.53.0",
+]
+
+[tool.uv]
+# Raspberry Pi OS / Linux; GPIO packages are not Windows runtime dependencies.
+environments = ["sys_platform == 'linux'"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# 🔴 `tests/` 만 본다. 저장소 뿌리에 `*_test.py` 이름의 **하드웨어 실험 스크립트**가
+#   있는데(`iot_bench/pca9685_servo_test.py`, `servo_test.py` …), pytest 가 그걸
+#   시험으로 주워서 import 한다. 그 스크립트들은 import 하는 순간 smbus2 를 찾고
+#   없으면 `sys.exit()` 해서 **수집 단계에서 전체가 죽는다** — Pi 밖에서는 항상.
+#   실제로 밟았다: "1 error in 0.20s" 하나로 시험 365개가 통째로 안 돌았다.
+testpaths = ["tests"]

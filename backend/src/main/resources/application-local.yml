@@ -1,0 +1,33 @@
+spring:
+  # infra/.env 를 직접 읽음. 환경변수 주입 없이 IDE·gradlew 둘 다 기동
+  # - 실행 위치(cwd)마다 상대경로가 달라 후보 3개. 없으면 조용히 건너뜀 → 기동 로그 OceanApiStartupCheck "막힌 소스"로 확인
+  # - .properties 로 읽음. 값 뒤 `# 주석` 은 값에 포함됨 → .env 주석은 반드시 별도 줄
+  # - 실제 환경변수가 있으면 그쪽이 우선 (set -a 방식과 공존)
+  config:
+    import:
+      - optional:file:../infra/.env[.properties]           # gradlew bootRun (cwd = backend/)
+      - optional:file:infra/.env[.properties]    # IDE, 저장소 루트 워크스페이스
+  datasource:
+    url: jdbc:postgresql://localhost:5432/floaq
+    username: floaq
+    password: floaq
+  jpa:
+    # ⚠ 로컬도 validate 다. update 로 두면 Hibernate 가 스키마를 고치는데 Flyway 는 그걸 모른다 —
+    #   로컬에서만 존재하는 컬럼이 생기고, 운영에서 validate 가 "로컬에선 됐는데" 하며 터진다.
+    #   엔티티를 고쳤는데 마이그레이션을 안 썼으면 **기동이 실패해야 한다.** 그게 안전망이다.
+    #
+    #   스키마를 갈아엎고 싶으면 DB 를 다시 만든다 (마이그레이션은 처음부터 다시 돈다):
+    #     docker compose -f ../infra/docker-compose.yml down -v && docker compose ... up -d postgres
+    hibernate.ddl-auto: validate
+    show-sql: true
+  data.redis:
+    host: localhost
+    port: 6379
+
+app.auth:
+  # 웹 로그인 화면의 "시연용 계정" 버튼과 같은 계정. 없을 때만 만든다(DemoAccountSeeder)
+  seed-demo-accounts: true
+
+logging.level:
+  com.floaq: DEBUG
+  org.hibernate.SQL: DEBUG

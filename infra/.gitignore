@@ -1,0 +1,10 @@
+# 배포 인프라
+# .env 는 저장소 루트 .gitignore 가 맡는다 (.env.example 은 커밋한다).
+
+# Let's Encrypt 인증서와 ACME 챌린지. 서버에서 생성된다.
+certbot/
+
+# 컨테이너 볼륨을 로컬에 마운트할 때
+data/
+pgdata/
+redisdata/

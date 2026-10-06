@@ -1,0 +1,470 @@
+spring:
+  application.name: floaq
+  profiles.active: local
+
+  jpa:
+    open-in-view: false          # 뷰 렌더링까지 커넥션을 잡고 있지 않는다
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC      # Instant 저장 기준. 표시 시점에 Asia/Seoul 변환
+        default_batch_fetch_size: 100
+        # 부표 위치·IMU 는 배열로 들어온다(두절 복귀 시 밀린 것이 한꺼번에).
+        # 건당 INSERT 면 왕복이 행 수만큼 난다.
+        #
+        # ⚠ PK 전략이 IDENTITY(serial)면 이 설정이 조용히 무효가 된다 —
+        #   Hibernate 가 생성 키를 건별로 받아와야 해서 배치로 묶지 못한다.
+        #   Pi 가 PK 를 발급하는 우리 구조(할당 ID)에서는 먹는다. 스키마 확정 시 재확인할 것.
+        jdbc.batch_size: 100
+        order_inserts: true
+        order_updates: true
+
+  # 스키마를 바꾸는 주체는 Flyway 하나다. 앱은 검증만 한다(ddl-auto: validate).
+  # 둘이 같이 스키마를 만지면 로컬과 운영이 갈라지고, 그 차이는 운영 기동 때 드러난다.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # ── 번호 규칙: V<YYYYMMDD>_<HHmm>__설명.sql (2026-09-17 전환) ──
+    #
+    # V1~V9 는 순차 정수다. 그 방식이 **같은 번호를 둘이 만드는 사고를 두 번** 냈다
+    # (2026-09-16 팀원 V5 · 2026-09-17 팀원 V10·V11). Flyway 는 같은 버전이 둘이면 기동 자체를 거부한다.
+    # 날짜·시각을 쓰면 두 사람이 같은 분에 만들지 않는 한 충돌이 없다.
+    # 언더스코어는 점으로 읽힌다 — V20260917_1730 은 20260917.1730 이라 V9 보다 크다.
+    #
+    # ⚠ **그래서 out-of-order 가 필수다.** 늦게 머지된 사람의 파일이 더 이른 시각을 가질 수 있는데,
+    #   false 면 그 순간 "이미 지나간 버전"이라며 **기동이 막힌다.**
+    #   켜도 되는 이유: 마이그레이션은 서로 독립이어야 하고(선행 마이그레이션을 전제하지 않는다),
+    #   순서에 기대는 변경은 애초에 한 파일에 담아야 한다.
+    #   ⚠ 대가: 로컬과 운영의 **적용 순서가 다를 수 있다.** 순서에 기대는 파일을 쓰면 여기서 갈린다.
+    #
+    # 🔴 **끄면 조용히 건너뛴다.** 기본값(false)이면 이미 높은 번호가 적용된 DB 에 뒤늦게 온 낮은 번호를
+    #   오류도 로그도 없이 지나친다 — 그 컬럼만 영영 안 생긴다.
+    #   2026-09-17 에 실제로 겪었다(팀원): V10·V11 을 먼저 적용한 로컬에 V8·V9 가 pull 로 들어왔고,
+    #   `ship.status` 가 없는 채로 `/api/admin/ships` 가 500 을 냈다 — 원인이 화면에 안 보인다.
+    #
+    #   순서가 뒤섞여도 되는 이유는 우리 마이그레이션이 서로 독립이기 때문이다 —
+    #   같은 테이블을 두 번호가 같이 만지면 그때는 번호가 아니라 내용을 맞춰야 한다.
+    out-of-order: true
+    # ⚠ true 로 두면 비어 있지 않은 DB 를 만났을 때 **현재 상태를 baseline 으로 찍고
+    #   그 이전 버전을 전부 건너뛴다.** V1 을 넣어도 적용되지 않고 조용히 통과한다 —
+    #   "마이그레이션을 추가했는데 테이블이 안 생긴다"를 원인 없이 겪는 전형적인 자리다.
+    #   기존 DB 를 처음 채택할 때만 일회성으로 켠다.
+    baseline-on-migrate: false
+    # 🔴 새 마이그레이션 이름은 V<YYYYMMDD>_<HHmm>__설명.sql 이다(2026-09-17 결정, backend/README.md).
+    #   일련번호는 브랜치마다 다음 번호가 같아 충돌한다 — 바로 위 out-of-order 사고가 그 경우였다.
+    #   V1~V11 은 이미 적용돼 있어 그대로 둔다. 시각 버전이 숫자 버전보다 항상 커서 순서는 맞는다.
+    # 적용된 파일이 바뀌면 기동을 거부한다. 이게 형상관리의 실질이다 —
+    # 누가 과거 마이그레이션을 고쳐도 서버마다 다른 스키마가 되는 것을 막는다.
+    validate-on-migrate: true
+    # clean 은 스키마를 통째로 지운다. 운영에서 한 번 실행되면 복구 수단이 백업뿐이다.
+    clean-disabled: true
+
+  # 사고 프레임 tar 업로드 — POST /api/pi/frames (api.md §4).
+  # ⚠ 기본값이 파일 1MB · 요청 10MB 다. 그대로 두면 nginx(40m)는 통과시키고 **Spring 이 전부 413** 을 낸다.
+  # 32MB 근거: 150장 × 200KB(mqtt.md §5.2 "원본 JPEG 200KB") = 30MB
+  #   + tar 오버헤드(파일당 512B 헤더·블록 패딩 ≈ 150KB) + multipart 경계 여유.
+  # ⚠ 프레임 실제 크기는 아직 안 쟀다(api.md §4 "값이 문서마다 달라 미정" — 50KB면 7.5MB, 200KB면 30MB).
+  #   재고 나면 이 두 값과 nginx client_max_body_size 를 **같이** 조정한다. 한쪽만 바꾸면 증상이 엉뚱한 데서 난다.
+  servlet:
+    multipart:
+      max-file-size: 32MB
+      max-request-size: 34MB
+
+server:
+  port: 8080
+  tomcat:
+    # nginx upstream keepalive_timeout(30s)보다 항상 길어야 한다.
+    # 백엔드가 먼저 끊으면 nginx가 이미 닫힌 커넥션에 요청을 실어 보내 간헐 502.
+    # 기본값 20s 라 그대로 두면 반드시 걸린다.
+    keep-alive-timeout: 120s
+    max-keep-alive-requests: 200
+    # 🔴 요청을 거부할 때 남은 본문을 읽어 버리는 한도. 기본 2MB 다.
+    #   30MB tar 를 413 으로 거부하면 나머지를 삼키지 못해 톰캣이 연결을 끊고,
+    #   Pi 는 413 MEDIA_TOO_LARGE 대신 타임아웃을 본다 — "청크를 쪼개라"는 신호가 그 응답에 들어 있다(api.md §4).
+    #   -1 은 무제한. 거부 응답이 반드시 전달되게 한다.
+    max-swallow-size: -1
+
+management:
+  server.port: 9090              # 서비스 포트와 분리. 톰캣 스레드가 전부 잠겨도 응답해야 함
+  endpoints.web.exposure.include: health,prometheus   # heapdump·env 절대 열지 않음
+  endpoint.health:
+    probes.enabled: true         # /actuator/health/liveness
+    show-details: when-authorized
+
+app:
+  # 사고 영상·프레임 저장소 (S3 호환 — 운영 Cloudflare R2 · 로컬 MinIO 대체 가능, 계획.md §9.13).
+  # 비면 영상 업로드·재생만 막히고 기동 로그에 경고가 찍힌다. 나머지 기능은 그대로 돈다.
+  # ⚠ Pi 는 이 키를 갖지 않는다 — EC2 만 올린다(계획.md §9.6).
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:}      # R2: https://<account_id>.r2.cloudflarestorage.com
+    access-key: ${STORAGE_ACCESS_KEY:}
+    secret-key: ${STORAGE_SECRET_KEY:}
+    bucket: ${STORAGE_BUCKET:}
+    # 재생용 presigned URL 수명. 사고 영상 상한이 1시간이라 끝까지 보고도 탐색·재시청 여유가 남는 값
+    # (api.md §3.6 이 "만료 시간 미정"으로 둔 자리 — 이 값이 제안이다)
+    presign-ttl: 2h
+
+  alert:
+    report-delay-sec: 30         # 신고 유예. 확정값. 스누즈 없음
+  buoy:
+    heartbeat-sec: 10            # 부표 LoRa 송신 주기
+    timeout-sec: 60              # 두절 판정 임계. 임시값 — 실측 필요
+  frame:
+    pre-sec: 30                  # 사고 전 링 버퍼. 고정
+    pre-fps: 5                   # 150장
+    post-fps: 5                  # 확정 2026-09-11. 구간별 분기 없음
+    post-max-sec: 3600           # 강제 상한. 1시간 채우면 18,000장
+  launch:
+    camera-height-m:             # 설치 시 캘리브레이션
+    launcher-offset-m:           # 설치 시 캘리브레이션
+  health:                        # 장비 진단 임계. 실측 전까지 미정
+    camera-frame-timeout-sec:
+    camera-blur-threshold:
+    imu-stuck-count:
+    buoy-battery-warn-pct:
+  llm:
+    enabled: ${LLM_ENABLED:false}
+    # Compatible /chat/completions endpoint; optional in local development.
+    base-url: ${LLM_BASE_URL:}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:gpt-4o-mini}
+    daily-credit-cap:
+  ocean:
+    # 수집 '틱'. 실제 호출 주기는 소스별 interval-sec 이 정한다.
+    # 전역 크론 하나 기각 — 주기가 10분(기상특보)~24시간(해파리)이라 못 맞춘다
+    collect-cron: "0 * * * * *"
+    # 소해구를 전국으로 받는다 (2026-09-17). false 면 본선 주변 대해구 40개 — 쿼터·시간 문제 시 되돌리는 스위치
+    small-zone-nationwide: true
+
+    # 좌표가 없는 곳의 기준 위치 (2026-09-15, 선박 여러 척)
+    #   /sources 에 lat·lon 이 없을 때 · 요약(summary) · 최근 조회된 선박이 없을 때의 소해구
+    #
+    # 선박을 따라가지 않는다. 수집 해역 하나(bbox 를 마지막 조회 선박이 옮김)는 기각했다 —
+    # 배 두 척이면 해역을 서로 빼앗아 둘 다 "해역 밖"이 되고 60초마다 ROMS 35페이지를 헛부른다.
+    # ROMS 는 조회 좌표의 0.25° 타일만 받는다(RomsTile · RomsTileService). 지점 소스는 전국을 저장해 조회 좌표로 자른다.
+    #
+    # ROMS 크기 실측 (2026-09-13 totalCount, 1페이지 300건)
+    #   0.1°   1,424건   5p  ·  0.3°  10,324건  35p  ·  0.5°  29,726건 100p  ·  1.0° 111,428건 372p
+    #   → 0.25° 타일 약 24페이지(면적 비 추정). KHOA 에 시간 범위 파라미터가 없어 178개 예측 시각이 항상 곱해진다
+    # 🔴 기본 위치는 임시값(부산 앞)이다. 시연·조업 해역이 정해지면 교체(§10)
+    coverage:
+      default-lat: 35.05
+      default-lon: 129.05
+      # 지점 소스(sea_obs · 실시간어장)를 자르는 반경. bbox 로 자르면 한 칸 차이로 통째로 빈다 —
+      # 0.1° bbox 에서 sea_obs 1곳 / 수과원 0곳이었다(2026-09-13 실측).
+      # 30km 근거: 부산 앞에서 기장 관측소까지 약 25km. 부산권 지점이 들어오는 최소값
+      station-radius-km: 30
+
+    # kiosk 해역 이동 키 (X-Floaq-Kiosk-Key). 조회는 공개, 수집 해역 이동만 이 키가 맞을 때 (api.md §1.1)
+    # 비면 이동 전부 거부 — 조회는 정상, 해역 밖이면 OUTSIDE_AREA_NOT_MOVED (기동 시 경고 로그)
+    kiosk-key: ${FLOAQ_KIOSK_KEY:}
+
+    # 발급처 3곳. 값은 infra/.env 에 두고 저장소에는 넣지 않는다.
+    # 비면 해당 발급처의 소스가 전부 막히고 기동 로그에 어느 것이 막혔는지 찍힌다.
+    keys:
+      DATA_GO_KR: ${DATA_GO_KR_KEY:}
+      KMA_APIHUB: ${KMA_APIHUB_KEY:}
+      # ⚠ KHOA 슬롯은 없앴다 (2026-09-11 확정). 바다누리 '국가중점데이터' 계열은
+      #   공공데이터포털 인증키를 쓴다 — 활용가이드 6종 전부 파라미터가 serviceKey 다.
+      #   빈 슬롯을 남겨 두면 팀원이 있지도 않은 KHOA 키를 찾으러 간다.
+      # NIFS 는 공용 키가 없다 — API 마다 따로 나온다. 아래 소스의 api-key 참조
+      #
+      # ⚠ KHOA 6종 공통 (apis.data.go.kr/1192136/*, 활용가이드 PDF 확인)
+      #   ① serviceKey 는 **URL Encode 된 값**을 넣으라고 명시돼 있다
+      #   ② `type` 기본값이 **xml** 이다. JSON 을 쓰려면 매번 type=json 을 붙인다
+      #   ③ numOfRows 최대 **300**. 넘기면 조용히 잘린다
+      #   ④ **에러가 HTTP 200 으로 온다.** 본문 resultCode 를 봐야 한다 —
+      #      22 쿼터초과 · 30 미등록키 · 31 기한만료 · 3 데이터없음 · 40/41 관측소·항목 일시중지.
+      #      HTTP 상태만 보면 전부 성공으로 읽힌다
+      #
+      # ⚠ NIFS 3종 공통 함정 (ref/국립수산과학원_OpenAPI_*.pdf 확인, 2026-09-11)
+      #   ① **응답이 EUC-KR** 이다 (XML 선언에 명시). WebClient 기본은 UTF-8 이라 한글이 깨진다
+      #   ② **좌표가 없다.** 적조 oarea·해파리 news_desc 가 "전남 완도군 금일 해역" 같은 **텍스트**다
+      #      → 지도에 영역을 못 그린다. 텍스트 목록으로만 표시한다
+      #   ③ **HTML 이 섞여 온다** (<br>, &#8228;). 그대로 렌더하면 깨지거나 XSS 가 된다
+      #   ④ 적조·해파리는 **2단계 호출** — 목록에서 srcode 를 얻어 상세를 다시 부른다
+
+    # 6종 (계획.md §6). enabled:false 는 **엔드포인트가 아직 미확인**이라는 뜻이다 —
+    # 주소를 지어내 넣으면 "키가 틀렸나 주소가 틀렸나"를 구분할 수 없게 된다.
+    sources:
+      # 표류 범위 추정의 직접 입력. 격자라 임의 좌표에서 값을 뽑는다.
+      #
+      # 명세 확정 (2026-09-11, 활용가이드 PDF — 앞선 "점 조회인가 bbox 인가" 논쟁 종결)
+      #   요청  ymin·ymax·xmin·xmax(필수, **차이 최대 1도**) · type(필수) · pageNo · numOfRows(max 300)
+      #   응답  predcDt · lat · lot · crdir(유향 deg) · crsp(유속 **m/s**) · wtem(℃). 8일 예측
+      #
+      # ⚠ 경도 필드가 `lot` 이다. `lon` 도 `lng` 도 아니다 — 매핑에서 반드시 갈아끼운다.
+      # ⚠ **bbox 를 좁게 잡는다.** 가이드 예제가 0.1°×0.1° 에서 totalCount 2136 이었다
+      #   (격자점 × 예측 시각). 1° 로 넓히면 20만 건이라 300건씩 700페이지 — 쿼터를 한 번에 태운다.
+      roms:
+        provider: DATA_GO_KR
+        kind: FORECAST
+        base-url: "https://apis.data.go.kr/1192136/roms/GetRomsApiService"
+        # 매시: 새 예측본 확인(1페이지) + 최근 24시간 조회된 0.25° 타일만 갱신. 조회가 부른 새 타일은 즉시 받는다
+        #   예측본 하루 1회 갱신(2026-09-15). 방식은 RomsCollector · RomsTile 주석
+        interval-sec: 3600
+        daily-quota: 10000
+        enabled: true
+
+      # ── 아래 KHOA 5종은 활용신청·명세 확보 완료. ship-index 만 켬 (2026-09-14), 나머지는 수집기 없음 ──
+      #    (신청은 무해하지만 붙이면 수집기가 각자 실패하고 각자 stale 표시를 해야 한다)
+
+      # 🔴 **표류 추정 입력에서 뺀다 (2026-09-11 실측).** 최신 데이터가 **7시간 전**이다 —
+      #   HF_0040 을 1시간씩 거슬러 물어 확인했다(18:04 기준 11시가 마지막).
+      #   실측이라 ROMS(예측)보다 나을 줄 알았는데 반대였다. 표류 추정은 "지금부터 앞으로"인데
+      #   7시간 전 값으로는 답이 안 된다. **사후 검증·발표 근거로만 남긴다.**
+      #   관측소 12곳이 **전부 항만**인 제약(부산항신항·대한해협 포함)에 지연까지 겹쳤다.
+      #   obsCode 필수 · reqDate(yyyymmddHH) · 응답 crsp 단위가 **cm/s** (ROMS 와 다르다. 실측 확인)
+      hf-current:
+        provider: DATA_GO_KR
+        kind: OBSERVATION
+        base-url: "https://apis.data.go.kr/1192136/hfCurrent/GetHFCurrentApiService"
+        interval-sec: 3600
+        daily-quota: 10000
+        enabled: false
+
+      # ⚠ **한 지점에서 풍속·파고·수온·유향유속·염분을 전부 준다.**
+      #   기상청 sea_obs 는 관측망마다 요소가 갈리는데(파고부이 59=바람 없음) 이쪽은 갈리지 않는다.
+      #   → 둘 중 하나를 버릴 때 이쪽이 유리하다. 지점 36곳(기상청 85곳보다 적다)이 유일한 약점.
+      #   obsCode 필수 · reqDate(yyyymmdd) · min(시간간격 1~60)
+      #   응답 wndrct·wspd(m/s)·wvhgt(m)·wvpd(s)·crdir(deg)·crsp(**cm/s**)·wtem·slnty(psu)
+      # ⚠ 키 이름이 `buoy` 가 아니라 `khoa-buoy` 다. 이 저장소에서 `buoy` 는
+      #   **구조용 부표**(V1__init.sql `buoy` 테이블, IOT-05)를 가리킨다. 전혀 다른 물건이다.
+      khoa-buoy:
+        provider: DATA_GO_KR
+        kind: OBSERVATION
+        base-url: "https://apis.data.go.kr/1192136/twRecent/GetTWRecentApiService"
+        interval-sec: 1800
+        daily-quota: 10000
+        enabled: false
+
+      # 항해 탭 "언제 갈까" 참고 지수 (2026-09-14 켬). 출항 판정 근거 아님 — 기상특보 우선
+      #
+      # 2026-09-14 실호출
+      #   AREA 7권역 × 약 6일 — 앞 이틀 00/06/12/18시, 이후 06/12시. 1호출로 전국 (140행)
+      #   lastScrCn 문자열 (좋음·보통·나쁨·매우나쁨 확인) → 수집기가 1~5 매핑
+      #   avgCrsp 단위 kn → m/s 환산. 응답에 권역 코드 없음, 이름만
+      #   LINE·PORT·MARINA·YACHT 는 여객선·항만·레저 대상이라 안 씀
+      # ⚠ 권역 좌표가 없어 본선 위치로 자동 판정 불가 → stn-id 로 조업 권역 지정
+      ship-index:
+        provider: DATA_GO_KR
+        kind: FORECAST
+        base-url: "https://apis.data.go.kr/1192136/shipIndex/GetShipIndexApiService"
+        # 조업 권역 (활용가이드 p.3). 대한해협 — app.ocean.coverage 기본 위치(부산 앞)와 같은 권역. 시연 해역 확정 시 교체
+        # ⚠ 선박별 권역이 아니다 — 권역 좌표가 없어 본선 좌표로 고를 수 없다
+        stn-id: "AA_0004"
+        # 예보 구간이 6시간 단위라 1시간 주기로 충분. 24호출/일
+        interval-sec: 3600
+        daily-quota: 10000
+        enabled: true
+
+      # 항해 카테고리(§9.18 "언제 갈까"). 조위 tdlvHgt 단위 **cm** → m 로 저장
+      #
+      # 2026-09-16 켬 — 지점 166곳(가이드 PDF 코드표, 목록 API 없음 → resources/ocean/tide-forecast-stations.csv)
+      #   obsCode 필수 · min=60 이면 지점당 하루 24행 1호출 → 하루 166회
+      #   전국을 받는다. 좌표가 목록이 아니라 응답에 있어 "가까운 지점만" 을 고르려면 어차피 한 번은 전국을 받아야 한다
+      tide-forecast:
+        provider: DATA_GO_KR
+        kind: FORECAST
+        base-url: "https://apis.data.go.kr/1192136/tideFcstTime/GetTideFcstTimeApiService"
+        interval-sec: 86400          # 하루치 예보를 한 번에 받는다. 더 자주 불러도 같은 값이다
+        daily-quota: 10000
+        enabled: true
+
+      # 예보지점 203곳. 연안 보조 — ROMS 격자가 약 3km 라 연안에서 육지와 섞인다.
+      # ⚠⚠ **crdir 이 숫자가 아니라 16방위 한글 문자열이다** ("북북동", 2026-09-16 실호출).
+      #    다른 API 는 전부 deg 인데 여기만 다르다 — OceanUnits.degreesOfKorean16 으로 바꿔 저장한다.
+      # ⚠ **표류 추정 입력은 여전히 ROMS 단독이다.** 조류예보는 조석에 의한 흐름만이라 해류·취송류가 빠진다
+      #
+      # 2026-09-16 켬 — 지점 목록은 가이드 PDF 코드표 (resources/ocean/current-forecast-stations.csv)
+      #   obsCode 필수 · min=60 이면 지점당 하루 24행 1호출 → 하루 203회
+      current-forecast:
+        provider: DATA_GO_KR
+        kind: FORECAST
+        base-url: "https://apis.data.go.kr/1192136/crntFcstTime/GetCrntFcstTimeApiService"
+        interval-sec: 86400          # 하루치 예보를 한 번에 받는다
+        daily-quota: 10000
+        enabled: true
+      # 해양기상종합관측 — 해양기상부이(17) + 파고부이(59) + 표류부이를 한 엔드포인트로.
+      #
+      # 파라미터 (2026-09-11 확인)
+      #   authKey  인증키       ← data.go.kr 의 serviceKey, NIFS 의 key 와 이름이 다르다
+      #   tm       년월일시분   ⚠ **KST** 다. 우리 저장은 UTC(Instant)라 변환 지점이 생긴다
+      #   stn      지점번호     0 = 전체. 한 번에 다 받으면 쿼터를 아낀다
+      #
+      # ⚠ **지점마다 관측 요소가 다르다.** "59지점에서 파고·바람·수온을 한 번에"가 아니다.
+      #   파고부이(59)   수온 · 파도            — 바람 없음
+      #   해양기상부이(17) 기온 · 바람 · 기압 · 습도 · 파도 — 수온 없음
+      #   등표(9)        위 전부 + 수온 + 수위   — 다 나오지만 9지점뿐
+      #   → 관측 지점 선정 기준이 "가장 가까운 곳"이 아니라 **"필요한 요소가 나오는 곳"** 이어야 한다.
+      #     KHOA 해양관측부이는 한 지점에서 수온·바람·파고를 다 준다 — 어느 쪽을 쓸지 §10 미결.
+      sea-obs:
+        provider: KMA_APIHUB
+        kind: OBSERVATION
+        base-url: "https://apihub.kma.go.kr/api/typ01/url/sea_obs.php"
+        interval-sec: 1800           # 생산주기가 매시 정시 + 30분이라 더 자주 불러도 같은 값이다
+        enabled: true
+      # 위험 알리미(APP-02) 판단 기준. 임계치를 만들지 않고 국가 기준 인용 (계획.md §6)
+      #
+      # 오퍼레이션 둘 — base-url 은 서비스 루트, 수집기가 경로를 붙임
+      #   getPwnCd      특보구역별 이벤트 (해역·종류·강도·발표구분 필드) → 발효 판정
+      #   getPwnStatus  현재 발효현황·예비특보 문장 → 화면 요약 · 교차 확인
+      # getWthrWrnList(title 파싱) 기각 (2026-09-14) — 해역 없음 · 가운뎃점 문법 두 벌 · "해제예고연장" 함정
+      #
+      # 2026-09-14 실호출
+      #   response 봉투 있음 (KHOA 와 다름)
+      #   6일 창 107건 — 풍랑 S구역 75 · 강풍 L구역 30 · 폭풍해일 L구역 2
+      #   숫자·문자열 혼재 (warnVar 숫자, command 문자열) · 현황 문장 "없 음" 처럼 공백
+      # ⚠ 본선 좌표 → 특보구역 판정 불가. 기상청 회신(2026-09-14): 특보구역 공간정보 보유·제공 안 함
+      #   → 조업 해역을 특보구역 코드로 지정하고 warning-zone 계층(상위·하위 구역)으로 판정. 전국 목록은 그대로 유지
+      weather-warning:
+        provider: DATA_GO_KR
+        kind: ADVISORY
+        base-url: "http://apis.data.go.kr/1360000/WthrWrnInfoService"
+        # 조업 해역 특보구역 코드 (쉼표). S1311100 부산앞바다 · S1312010 남해동부안쪽먼바다
+        # app.ocean.coverage 기본 위치(부산 앞)와 짝. 시연 해역 확정 시 같이 교체
+        # ⚠ 선박별 구역이 아니다 — 기상청이 특보구역 공간정보를 제공하지 않아(2026-09-14 회신) 본선 좌표로 고를 수 없다
+        stn-id: "S1311100,S1312010"
+        # getWthrWrnList 7일 거부(99) 이력 · getPwnCd 7일은 totalCount 불일치 → 6일
+        window-days: 6
+        interval-sec: 600
+        daily-quota: 10000           # 공공데이터포털 개발계정. 1회 수집 = 2호출 (288/일)
+        enabled: true
+      # 특보구역 계층 — 기상청 API허브 예특보 1.1 wrn_reg.php (2026-09-14 활용신청)
+      #   EUC-KR 고정폭 · 414구역 (L 301 · S 113) · 좌표 없음
+      #   S1 계열 REG_UP 계층: 부산앞바다 → 남해동부앞바다 → 남해동부전해상 → 남해전해상 → 전해상
+      #   S2 연안바다/평수구역 51개는 상위가 전부 S2000000 — S1 과 연결 안 됨
+      # 구역 개편이 드묾 (마지막 2021-07-29 먼바다 세분화) → 하루 1회
+      warning-zone:
+        provider: KMA_APIHUB
+        kind: ADVISORY
+        base-url: "https://apihub.kma.go.kr/api/typ01/url/wrn_reg.php"
+        interval-sec: 86400
+        enabled: true
+      # 기상청 해구별 예측 (KIM 지역파랑모델 RWW3) — 해양포털 "해구별 해양기상정보" 와 같은 원자료
+      #
+      # 2026-09-14 실호출 (활용신청 후)
+      #   발표 00·12UTC · 발효 +0~75시간 3시간 간격 26시각 · tma_ef 필수(생략하면 "유효시간을 확인")
+      #   대해구 전체(Lzone=0) 1회 1,330칸 214KB 0.38초 · 소해구 대해구 40개 1회 360칸 86KB 1.38초
+      #   🔴 오류도 HTTP 200 + 한글 한 줄 — "#START7777" 표식으로 가른다
+      #   12UTC 발표본이 11:19 UTC 에도 없었다 — 생산 지연 1시간 이상. 매시 확인, 없으면 직전 발표본 유지
+      #
+      # 호출: 새 발표본마다 대해구 26 + 소해구 26 = 하루 104회. 이미 받았으면 확인 호출 0.
+      #   API허브 한도 — 일반회원 **일 20,000건 · 일 5GB** (2026-09-17 apiInfo.do 확정. 둘 다 하루 단위)
+      #     기관회원(학술·연구기관)은 30,000건 · 50GB. ⚠ "시스템 상황에 따라 변경될 수 있습니다" 명시
+      # daily-quota 1000 = 정상의 약 20배 — 반복 버그가 공용 한도를 태우기 전에 끊는 안전장치
+      marine-zone:
+        provider: KMA_APIHUB
+        kind: FORECAST
+        base-url: "https://apihub.kma.go.kr/api/typ06/url/marine_large_zone.php"
+        interval-sec: 3600           # 발표는 12시간마다지만 생산 지연을 몰라 매시 확인
+        daily-quota: 1000
+        enabled: true
+      # 소해구 — 수온·시정·강수·너울은 여기만 있다(2026-07-01 00UTC 발표본부터).
+      #   **전국** (2026-09-17). 발표본당 884회(34 묶음 × 26 발효시각) · 하루 1,768회 = 한도의 9%.
+      #   전량을 한 틱에 받으면 약 54분이라 그동안 뒤 소스가 멈춘다 —
+      #   그래서 **매분 1묶음(26회 ≈ 39초)씩** 나눠 받아 약 34분에 끝낸다(ocean_zone_pending, V20260917_1731).
+      #   interval-sec 60 = 수집 틱(매분)마다 이어받기. 다 받은 발표본이면 호출 0 이라 낭비가 아니다.
+      #   되돌리려면 app.ocean.small-zone-nationwide: false (본선 주변 40개)
+      marine-zone-small:
+        provider: KMA_APIHUB
+        kind: FORECAST
+        base-url: "https://apihub.kma.go.kr/api/typ06/url/marine_small_zone.php"
+        interval-sec: 60
+        # 전국 1,768/일 + 재시도 여유. 정상의 약 1.7배에서 끊는다 (공용 한도 20,000 의 15%)
+        daily-quota: 3000
+        enabled: true
+      # 저체온증 생존 시간 추정 + 조업 판단.
+      #
+      # ⚠ 발급처를 data.go.kr → NIFS 로 바꿨다 (2026-09-11). 팀이 NIFS 포털에서 키를 받았다.
+      #   같은 데이터가 양쪽에 다 있지만 **키와 엔드포인트가 서로 안 맞는다** —
+      #   NIFS 키로 apis.data.go.kr 을 부르면 인증이 실패한다.
+      #
+      # NIFS 규격  https://www.nifs.go.kr/api/OpenAPI_json?id={id}&key={키}
+      #   인증 파라미터가 `key` 다. data.go.kr 의 `serviceKey` 가 아니다.
+      #   id=risaList — 추가 파라미터 없음
+      #
+      # ⚠ **응답은 UTF-8 이다** (2026-09-11 실호출 정정). PDF 의 EUC-KR 은 XML 엔드포인트 쪽이다 —
+      #   `_json` 을 쓰는 3종 모두 UTF-8 로 왔다. 인코딩 처리가 필요 없다.
+      #
+      # ⚠ **수온만 준다.** 계획.md §6 은 "수온·염분·용존산소"라고 적었으나 틀렸다 —
+      #   응답은 sta_cde · sta_nam_kor · wtr_tmp · obs_dat · obs_tim · repair_gbn · obs_lay 뿐이다.
+      #   저체온증 추정에는 수온만 있으면 되므로 **용도는 그대로**다.
+      #   ⚠ obs_lay 로 층이 갈린다(1표층/2중층/3저층) — 한 관측소가 여러 행이다. **표층만 쓴다**
+      #   ⚠ repair_gbn=2 는 점검 중이다. 안 거르면 고장난 센서 값을 화면에 그린다
+      #
+      # ⚠ **관측소 좌표는 이 API 에 없다.** id=risaCode 를 따로 불러야 lat/lon 을 얻는다
+      #   (gru_nam 으로 해역 필터: 동해E·서해W·남해S·동중국해EC).
+      #   갱신이 "수시"라 기동 시 1회면 충분하다 — §10 "관측 지점 선정"의 해법이 이것이다
+      fishing-ground:
+        provider: NIFS
+        kind: OBSERVATION
+        base-url: "https://www.nifs.go.kr/api/OpenAPI_json"   # id 는 수집기가 넣는다 (risaList · risaCode)
+        api-key: ${NIFS_RISA_KEY:}
+        interval-sec: 1800           # 관측 자체가 30분 주기
+        enabled: true
+      # 특보 체계가 있어 판단 기준이 국가 것이다.
+      # ⚠ sdate·edate(yyyymmdd) 필수. 기간 조회라 수집기가 창(window)을 계산해 넣어야 한다.
+      #
+      # ⚠ **목록에는 특보가 없다.** redtideList 는 srcode·rdate + 원인생물·조사해역·밀도·수온뿐이고,
+      #   계획.md §6 이 말한 "진행상황·특보상황·금후전망·당부사항"은 상세를 다시 불러야 나온다.
+      # ⚠ **상세 호출 키가 `srcode` 가 아니라 `cod_news` 다** (2026-09-11 실호출 정정. 예 "20260811-001").
+      # ⚠ 한 보고에 원인생물이 여럿이라 **`item2[]` 중첩 배열**이 있다.
+      #   빈 값이 null 이 아니라 **빈 문자열**로 온다(min_density) — 숫자로 바로 파싱하면 터진다.
+      red-tide:
+        provider: NIFS
+        kind: ADVISORY
+        base-url: "https://www.nifs.go.kr/api/OpenAPI_json"   # id 는 수집기가 넣는다 (redtideList · redtideDetail)
+        api-key: ${NIFS_REDTIDE_KEY:}
+        # sdate~edate 조회 창. 적조는 수시 발표라 한 달이면 최신 보고가 반드시 걸린다
+        window-days: 30
+        interval-sec: 3600
+        enabled: true
+      # ⚠⚠ **제공기관이 "판단 근거로 쓸 수 없다"고 직접 적어 둔 데이터다.**
+      #   원문: "출현률은 이번 주 조사된 393명 중 응답자 105명에서 해파리를 관찰한 사람 수를
+      #          백분율화한 값으로 참고 할 수는 있으나 대량 출현의 결정적 판단 근거로 이용 될 수 없음"
+      #   → **설문 응답률이지 관측값이 아니다.** 화면에 이 단서를 반드시 함께 띄운다.
+      #
+      # ⚠ jellyList 는 **게시판 목록**이다 (board_idx·board_subject·gbn). 데이터가 아니다.
+      #   실제 수치는 id=jellyDetail2&srcode= (주간보고) 에 있다 —
+      #   지역 12곳 × 3종(노무라·보름달물·기타) 출현율 + 주간변동 이미지 URL.
+      #   gbn: 0=주간보고(→jellyDetail2), 1=속보(→jellyDetail)
+      #   ⚠ 목록의 board_idx 와 상세의 srcode 형식이 달라 보인다 — 연결 방법 확인 필요
+      #
+      #   sdate·edate 필수. 검색 기간 최대 1년
+      jellyfish:
+        provider: NIFS
+        kind: ADVISORY
+        base-url: "https://www.nifs.go.kr/api/OpenAPI_json"   # id 는 수집기가 넣는다 (jellyList · jellyDetail)
+        api-key: ${NIFS_JELLY_KEY:}
+        # 주간보고가 주 1회라 한 달이면 최근 4회가 걸린다. 검색 기간 상한은 1년
+        window-days: 30
+        interval-sec: 86400
+        enabled: true
+  pi:
+    # Raspberry Pi 등록 키 (X-Floaq-Pi-Key). 저장소에 값을 넣지 않는다.
+    # ⚠ POST /api/pi/ships 한 곳에만 쓴다 — 그 응답의 선박 키가 이후 모든 Pi 요청을 인증한다
+    #   (docs/api.md §1.1, 2026-09-17). 하나로 두면 키를 가진 쪽이 아무 ship_id 로나 올릴 수 있다.
+    # 비면 등록이 401 이라 Pi 가 ship_id 를 못 받는다 — 안전한 쪽으로 닫힌다(기동 시 경고 로그).
+    enroll-key: ${FLOAQ_PI_ENROLL_KEY:}
+    # 하행 명령 폴링은 Pi 가 한다(계획.md §9.9). 서버는 큐를 쌓고 ack 를 기다릴 뿐이다.
+    command-ttl-sec: 3600        # 배달 못 한 명령의 수명. 종결 상한(1h)과 맞춘다
+  auth:
+    # JWT 서명 키(HS256). 저장소에 값을 넣지 않는다. 32바이트 이상 — openssl rand -hex 32
+    # 비면 기동할 때마다 임의 키를 만든다 — 재시작하면 모든 로그인이 풀린다(기동 시 경고 로그).
+    jwt-secret: ${FLOAQ_JWT_SECRET:}
+    # refresh token 이 없어 만료되면 다시 로그인한다(docs/api.md §3.1).
+    # ⚠ 임시값 — 상황실 한 교대에 맞췄다. api.md §9 #7 미결
+    token-ttl: 12h
+    # 시연 계정을 만든다. 기본은 false — SA 은 운영자가 DB 로 만든다(api.md §3.1).
+    # local 과 prod 가 각자 true 로 덮는다. prod 를 켠 근거는 application-prod.yml 주석에.
+    seed-demo-accounts: false
+
+springdoc:
+  swagger-ui.path: /swagger-ui.html
+  # 경로별 그룹. Pi 담당이 자기 것만 보게 나눈다
+  group-configs:
+    - group: web
+      paths-to-match: /api/**
+      paths-to-exclude: /api/pi/**
+    - group: pi
+      paths-to-match: /api/pi/**

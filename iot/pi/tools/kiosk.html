@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>FloaQ 키오스크 (개발용)</title>
+<!--
+  개발용 키오스크. mqtt.md 계약을 그대로 구현한다.
+
+  이걸 만든 이유가 셋이다.
+    1. **ws://localhost:9001 을 실제로 테스트한다.** 키오스크가 붙을 유일한 경로인데
+       지금까지 한 번도 안 열어봤다. 브라우저는 raw TCP 를 못 열어서 1883 으로는 못 붙는다.
+    2. Postman 에서 JSON 을 손으로 치지 않는다. request_id UUID v7, ts, 봉투를 자동 생성한다.
+    3. report_due_at 으로 카운트다운이 실제로 그려지는지 본다.
+       **자체 타이머를 돌리지 않는다** — 절대 시각에서 매 프레임 다시 계산한다 (mqtt.md §5.1).
+
+  실행:
+    파일을 브라우저로 그냥 연다 (file://). WebSocket 은 CORS 대상이 아니라 동작한다.
+    안 되면:  python -m http.server 8000   →  http://localhost:8000/tools/kiosk.html
+
+  ⚠ 이건 개발 도구다. 실제 키오스크(apps/kiosk)는 React 로 따로 만든다.
+-->
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<style>
+  :root {
+    --bg:#12151a; --panel:#1a1f27; --line:#2a3038; --fg:#d8dee8;
+    --dim:#7b8694; --ok:#4ec9a0; --warn:#e0b050; --bad:#e06c75; --acc:#61a5fa;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:16px; background:var(--bg); color:var(--fg);
+    font:13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  h1 { font-size:15px; margin:0 0 12px; font-weight:600; }
+  h1 small { color:var(--dim); font-weight:400; margin-left:8px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .col { flex:1 1 340px; min-width:0; }
+  .panel {
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:6px; padding:12px; margin-bottom:12px;
+  }
+  .panel h2 {
+    font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--dim); margin:0 0 10px; font-weight:600;
+  }
+  input, button { font:inherit; }
+  input[type=text] {
+    background:#0d1014; color:var(--fg); border:1px solid var(--line);
+    border-radius:4px; padding:6px 8px; width:100%;
+  }
+  button {
+    background:#242b35; color:var(--fg); border:1px solid var(--line);
+    border-radius:4px; padding:7px 12px; cursor:pointer;
+  }
+  button:hover:not(:disabled) { background:#2d3642; border-color:#3d4650; }
+  button:disabled { opacity:.3; cursor:not-allowed; }
+  button.pri { background:var(--acc); color:#0a0d11; border-color:var(--acc); font-weight:600; }
+  button.dgr { background:var(--bad); color:#140a0b; border-color:var(--bad); font-weight:600; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
+  .kv dt { color:var(--dim); }
+  .kv dd { margin:0; overflow-wrap:anywhere; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .dot.on { background:var(--ok); } .dot.off { background:var(--bad); }
+  .count { font-size:40px; font-weight:700; letter-spacing:-.02em; text-align:center; padding:8px 0; }
+  .count.urgent { color:var(--bad); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-weight:600; font-size:12px; }
+  .DETECT{background:#3a3020;color:var(--warn)} .WAIT{background:#3a2020;color:var(--bad)}
+  .REPORT{background:#20303a;color:var(--acc)} .CANCEL,.CLOSE{background:#252b33;color:var(--dim)}
+  #log { height:340px; overflow-y:auto; font-size:11px; }
+  .msg { padding:4px 0; border-bottom:1px solid #20262e; }
+  .msg .t { color:var(--acc); }
+  .msg .ts { color:var(--dim); float:right; }
+  .msg .b { color:var(--dim); overflow-wrap:anywhere; }
+  .msg.cleared .t { color:var(--dim); text-decoration:line-through; }
+  .msg.out .t { color:var(--ok); }
+</style>
+</head>
+<body>
+
+<h1>FloaQ 키오스크 <small>개발용 · <span id="broker"></span></small></h1>
+<p id="contract" style="color:var(--dim);font-size:11px;margin:-6px 0 12px">계약 읽는 중…</p>
+
+<div class="panel">
+  <div class="row" style="align-items:flex-end">
+    <div class="col"><label style="color:var(--dim);font-size:11px">SHIP_ID (.ship_id 파일 내용)</label>
+      <input type="text" id="ship" placeholder="01a09dae-...">
+    </div>
+    <div class="col" style="flex:0 0 auto">
+      <button id="conn" class="pri">연결</button>
+      <button id="disc" disabled>끊기</button>
+    </div>
+    <div class="col" style="flex:0 0 auto"><span id="status"><span class="dot off"></span>끊김</span></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <div class="panel">
+      <h2>사고 상태</h2>
+      <div id="countdown" class="count" style="display:none">--</div>
+      <dl class="kv">
+        <dt>상태</dt><dd id="st">—</dd>
+        <dt>accident_id</dt><dd id="aid" style="font-size:11px">—</dd>
+        <dt>사유</dt><dd id="rsn">—</dd>
+        <dt>발사</dt><dd id="lr">—</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <h2>명령</h2>
+      <div class="btns">
+        <button id="c-cancel"        class="dgr" disabled>자동 신고 취소</button>
+        <button id="c-report_now"    class="pri" disabled>즉시 신고</button>
+        <button id="c-rescue"        disabled>구조 확정</button>
+        <button id="c-close"         disabled>사고 종료</button>
+      </div>
+      <p style="color:var(--dim);font-size:11px;margin:10px 0 0">
+        상태별로 유효한 명령만 켜진다 (mqtt.md §5.9). 비활성 버튼을 억지로 보내보려면
+        아래 <b>무시하고 전송</b>을 켠다 — Pi 가 INVALID_STATE 로 거부하는지 볼 수 있다.
+      </p>
+      <label style="color:var(--dim);font-size:11px;display:block;margin-top:6px">
+        <input type="checkbox" id="force"> 무시하고 전송
+      </label>
+    </div>
+
+    <div class="panel">
+      <h2>장비 <span id="pi-online" style="float:right"></span></h2>
+      <dl class="kv" id="dev"><dt>—</dt><dd>아직 수신 없음</dd></dl>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel">
+      <h2>메시지 <button id="clr" style="float:right;padding:2px 8px;font-size:11px">지우기</button></h2>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 계약 ─────────────────────────────────────────────────────────────
+// **파이썬이 정본이다.** 손으로 복제하지 않고 뽑아낸 것을 읽는다:
+//     python -m floaq.contracts -o tools/contract.json
+//
+// 이렇게 하는 이유: 상태별 유효 명령·토픽·enum 을 양쪽에 적으면 반드시 갈라진다.
+// 갈라지면 키오스크 버튼은 켜져 있는데 Pi 가 거부하거나, 반대로 기능을 아예 못 쓴다.
+//
+// ⚠ contract.json 을 못 읽으면(file:// 에서 fetch 가 막히는 브라우저) 아래 기본값으로
+//   떨어진다. 그때는 화면에 경고가 뜬다 — 조용히 낡은 값을 쓰지 않는다.
+const FALLBACK = {
+  valid_command_states: { cancel:['WAIT'], report_now:['WAIT'], rescue:['REPORT'], close:['REPORT'] },
+};
+let CONTRACT = FALLBACK;
+
+const validIn = cmd => (CONTRACT.valid_command_states || {})[cmd] || [];
+
+let client = null, shipId = '', state = null, launch = null;
+
+// ── Pi 주소 ──────────────────────────────────────────────────────────
+// 🔴 **키오스크는 Pi 와 다른 컴퓨터다.** localhost 로 박아두면 Pi 위에서 열었을 때만
+//    붙는다. 실제 키오스크에서는 아무것도 안 뜬다.
+//
+//   1) 이 페이지를 Pi 가 내려줬으면  location.hostname 이 곧 Pi 주소다   <- 기본
+//   2) 파일로 직접 열었으면          빈 문자열이라 localhost 로 떨어진다
+//   3) 강제로 지정하려면             ?pi=192.168.0.10
+//
+// Pi 가 http://<pi>:8000/kiosk/ 로 내려주면 키오스크에 설정할 게 없어진다.
+const PI_HOST = new URLSearchParams(location.search).get('pi')
+             || location.hostname
+             || 'localhost';
+const BROKER_URL = `ws://${PI_HOST}:9001`;
+// ⚠ BROKER_URL 정의 뒤에 쓴다. const 는 TDZ 라 앞에서 읽으면 ReferenceError 다.
+document.getElementById('broker').textContent = BROKER_URL;
+
+const $ = id => document.getElementById(id);
+const now = () => Math.floor(Date.now() / 1000);
+
+// ⚠ $ 가 정의된 뒤에 부른다. 위에 두면 ReferenceError 가 난다.
+// ⚠ 절대경로다. Pi 가 /kiosk/ 로 내려주면 상대경로는 /kiosk/contract.json 이 되어 없다.
+//   FastAPI 가 /contract.json 에서 파이썬으로 즉석 생성해 준다 — 파일로 굳혀두지 않는다.
+fetch(`${location.protocol}//${PI_HOST}:${location.port || 8000}/contract.json`)
+  .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+  .then(c => {
+    CONTRACT = c;
+    $('contract').textContent = `계약 v${c.version} · 토픽 ${Object.keys(c.topics).length}개 · 파이썬에서 생성됨`;
+    $('contract').style.color = 'var(--ok)';
+    render();
+  })
+  .catch(e => {
+    // file:// 에서는 fetch 가 막힌다. 조용히 낡은 기본값을 쓰지 않고 화면에 알린다.
+    $('contract').textContent = `contract.json 못 읽음 (${e.message}) — 기본값 사용. `
+      + `python -m http.server 로 열 것`;
+    $('contract').style.color = 'var(--warn)';
+  });
+
+// UUID v7. 상위 48비트가 밀리초라 문자열 정렬이 곧 시간 순서다.
+// 파이썬 floaq/ids.py 와 같은 레이아웃.
+function uuid7() {
+  const ts = BigInt(Date.now());
+  const b = new Uint8Array(16);
+  for (let i = 0; i < 6; i++) b[i] = Number((ts >> BigInt(8 * (5 - i))) & 0xffn);
+  crypto.getRandomValues(b.subarray(6));
+  b[6] = 0x70 | (b[6] & 0x0f);   // version 7
+  b[8] = 0x80 | (b[8] & 0x3f);   // variant
+  const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+}
+
+function log(topic, body, cls = '') {
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  const short = topic.split('/').slice(2).join('/');   // ship/{id}/ 접두사 제거
+  d.innerHTML = `<span class="ts">${new Date().toLocaleTimeString()}</span>`
+              + `<span class="t">${short}</span><div class="b">${body}</div>`;
+  $('log').prepend(d);
+  while ($('log').children.length > 200) $('log').lastChild.remove();
+}
+
+// ── 연결 ─────────────────────────────────────────────────────────────
+$('conn').onclick = () => {
+  shipId = $('ship').value.trim();
+  if (!shipId) { alert('SHIP_ID 를 넣으세요'); return; }
+
+  // ⚠ 브라우저는 raw TCP 를 못 연다. 1883 이 아니라 9001(WebSocket) 이다.
+  client = mqtt.connect(BROKER_URL, {
+    clientId: `kiosk-${shipId}`,
+    clean: true,          // 세션 안 들고 있는다. 복구는 retained 로 한다 (mqtt.md §1.1)
+    keepalive: 15,
+    // LWT. Pi 가 "경보를 띄울 화면이 살아있는지" 판단하는 근거 (§1.4)
+    will: {
+      topic: `ship/${shipId}/kiosk/online`,
+      payload: JSON.stringify({ online: false, ts: 0 }),
+      qos: 1, retain: true,
+    },
+  });
+
+  client.on('connect', () => {
+    $('status').innerHTML = '<span class="dot on"></span>연결됨';
+    $('conn').disabled = true; $('disc').disabled = false;
+
+    // 발행자 세그먼트로 나눠 구독한다 (§1.2). 자기가 쏘는 kiosk/# 는 구독하지 않는다 —
+    // 응답은 pi/command/response 로 온다.
+    client.subscribe(`ship/${shipId}/pi/#`, { qos: 1 });
+    client.subscribe(`ship/${shipId}/jetson/#`, { qos: 1 });
+
+    // LWT 토픽을 online=true 로 덮어쓴다
+    client.publish(`ship/${shipId}/kiosk/online`,
+      JSON.stringify({ online: true, ts: now() }), { qos: 1, retain: true });
+
+    log('ship/x/연결', `${BROKER_URL} · clientId=kiosk-${shipId}`, 'out');
+  });
+
+  client.on('error', e => log('ship/x/오류', e.message));
+  client.on('close', () => {
+    $('status').innerHTML = '<span class="dot off"></span>끊김';
+    $('conn').disabled = false; $('disc').disabled = true;
+  });
+
+  client.on('message', (topic, buf) => {
+    // 0바이트 = retained 삭제 알림. 페이로드로 파싱하면 안 된다 (§2.2)
+    if (buf.length === 0) {
+      log(topic, '(retained 삭제)', 'cleared');
+      if (topic.endsWith('/pi/accident/state')) { state = null; launch = null; render(); }
+      return;
+    }
+    let env;
+    try { env = JSON.parse(buf.toString()); }
+    catch { log(topic, '파싱 실패'); return; }
+
+    const sub0 = topic.split('/').slice(2).join('/');
+
+    // ⚠ */online 만 봉투가 없다. LWT 페이로드는 **접속 시점에 고정**되므로
+    //   request_id·ts 를 의미 있게 채울 수 없다 (mqtt.md §1.4 — ts 는 0 으로 둔다).
+    //   나머지 토픽과 모양이 다르니 여기서 갈라준다.
+    if (sub0.endsWith('/online')) {
+      log(topic, JSON.stringify(env));
+      if (sub0 === 'pi/online') {
+        $('pi-online').innerHTML = env.online
+          ? '<span class="dot on"></span>Pi 살아있음'
+          : '<span class="dot off"></span>Pi 두절';
+      }
+      return;
+    }
+
+    // 모르는 v 는 버린다 (§0.2). 키오스크만 업데이트된 상태에서 옛 페이로드가 오는 경우.
+    if (env.v !== 1) { log(topic, `모르는 버전 v=${env.v} — 버림`); return; }
+
+    // 봉투가 두 종류다. CommandAck 는 data 가 **단건**, Envelope 는 배열.
+    const items = Array.isArray(env.data) ? env.data : [env.data];
+    log(topic, JSON.stringify(items.length === 1 ? items[0] : items));
+
+    const sub = topic.split('/').slice(2).join('/');
+    if (sub === 'pi/accident/state')      { state = items[0]; render(); }
+    else if (sub === 'pi/launch/result')  { launch = items[0]; render(); }
+    else if (sub === 'pi/device/status')  { renderDevice(items[0]); }
+
+  });
+};
+
+$('disc').onclick = () => {
+  // 정상 종료면 LWT 를 기다리게 하지 않는다 — 브로커는 Keep Alive×1.5(약 22.5초) 뒤에야 쏜다.
+  client.publish(`ship/${shipId}/kiosk/online`,
+    JSON.stringify({ online: false, ts: now() }), { qos: 1, retain: true });
+  client.end();
+};
+$('clr').onclick = () => $('log').innerHTML = '';
+
+// ── 명령 발행 ────────────────────────────────────────────────────────
+function send(cmd) {
+  if (!state) { alert('진행 중 사고가 없다'); return; }
+  const env = {
+    request_id: uuid7(),          // 매번 새 값. 같은 값이면 Pi 가 중복으로 보고 실행을 건너뛴다
+    v: 1,
+    ts: now(),
+    data: [{ accident_id: state.accident_id, issued_by: 'TABLET' }],
+  };
+  client.publish(`ship/${shipId}/kiosk/command/${cmd}`,
+    JSON.stringify(env), { qos: 1, retain: false });   // ⚠ 명령에 retain 을 걸면 재접속 때 되살아난다
+  log(`ship/x/kiosk/command/${cmd}`, JSON.stringify(env.data[0]), 'out');
+}
+for (const c of ['cancel', 'report_now', 'rescue', 'close']) $('c-' + c).onclick = () => send(c);
+
+// ── 화면 ─────────────────────────────────────────────────────────────
+function render() {
+  const st = state ? state.status : null;
+  $('st').innerHTML = st ? `<span class="badge ${st}">${st}</span>` : '—';
+  $('aid').textContent = state ? state.accident_id : '—';
+  $('rsn').textContent = state ? state.reason : '—';
+  $('lr').textContent = launch
+    ? (launch.result === 'SUCCESS' ? '성공' : `실패 · ${launch.fail_reason}`) : '—';
+
+  for (const c of ['cancel', 'report_now', 'rescue', 'close'])
+    $('c-' + c).disabled = !$('force').checked && !(st && validIn(c).includes(st));
+}
+$('force').onchange = render;
+
+function renderDevice(d) {
+  $('dev').innerHTML = Object.entries(d)
+    .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+}
+
+// 카운트다운은 **절대 시각에서 매 프레임 다시 계산**한다 (mqtt.md §5.1).
+// 자체 타이머를 돌리면 메시지 지연만큼 어긋나고, 재접속 시 남은 시간을 복구할 수 없다.
+setInterval(() => {
+  const el = $('countdown');
+  if (!state || state.status !== 'WAIT' || !state.report_due_at) {
+    el.style.display = 'none'; return;
+  }
+  const left = state.report_due_at - now();
+  el.style.display = 'block';
+  el.textContent = left > 0 ? `${left}초` : '신고 전송됨';
+  el.className = 'count' + (left <= 10 ? ' urgent' : '');
+}, 200);
+
+// .ship_id 를 매번 붙여넣지 않게 기억해 둔다
+try {
+  const s = localStorage.getItem('floaq_ship');
+  if (s) $('ship').value = s;
+  $('ship').onchange = () => localStorage.setItem('floaq_ship', $('ship').value.trim());
+} catch {}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# Spring Boot · Java · Gradle
+# OS · 편집기 · 시크릿은 저장소 루트 .gitignore 가 맡는다.
+# 출처: github/gitignore (Java · Gradle)
+
+# ── Gradle ──
+.gradle/
+build/
+!**/src/**/build/
+gradle-app.setting
+.gradletasknamecache
+
+# ── Java 산출물 ──
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# ⚠ 위 *.jar 가 Gradle 래퍼까지 잡는다. 래퍼는 반드시 커밋돼야
+#   팀원이 Gradle 설치 없이 ./gradlew 를 쓸 수 있다.
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# ── Spring Boot ──
+application-secret.yml
+application-secret.yaml
+application-local-override.yml
+
+# ── Eclipse / VS Code Java ──
+.classpath
+.project
+.settings/
+bin/

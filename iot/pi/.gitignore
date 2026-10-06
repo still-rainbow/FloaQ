@@ -1,0 +1,23 @@
+# 장비마다 다른 실행 시간 산물. 저장소에 들어가면 안 된다.
+#
+# 🔴 `floaq.imu-zero.json` 이 Pi 에서 커밋된 적이 있다. 이건 **그 배에서 잰
+#    설치 영점**이라 다른 장비에서는 틀린 값이다. 추적되면 pull 이 실측값을
+#    덮어쓰고, 그 뒤로는 기울어진 상태가 "수평" 으로 박혀 침수·전복 판정이
+#    통째로 죽는다 (`tools/imu_zero.py` 참고). 2026-09-22 실기에서 겪었다.
+floaq.imu-zero.json
+
+# SQLite 와 그 옆 파일들
+floaq.db
+floaq.db-wal
+floaq.db-shm
+floaq.db.pending-ship.json
+floaq.db.pending-ship.json.part
+
+# 등록된 선박 uuid (dev.sh 가 쓴다)
+.ship_id
+
+# 올라온 프레임
+data/
+
+# 로그
+pi.log

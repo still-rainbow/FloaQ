@@ -1,0 +1,20 @@
+# Replace with the team dataset YAML path on each environment.
+data: datasets/person_animal_float/data.yaml
+class_names:
+  - person
+  - animal
+  - float
+primary_target_class: person
+model: yolo11n.pt
+epochs: 50
+imgsz: 640
+batch: 16
+workers: 8
+device: 0  # CUDA_VISIBLE_DEVICES=2 makes physical GPU 2 logical device 0.
+seed: 42
+project: experiments
+name: baseline
+exist_ok: false
+split: val
+conf: 0.25
+iou: 0.7

@@ -1,0 +1,78 @@
+/* ─────────────────────────────────────────────
+   FloaQ 관제 — 선내 단말과 같은 토큰, 다른 조립.
+   단말은 심해 다크, 관제는 흰 바탕 라이트.
+   ───────────────────────────────────────────── */
+:root {
+  --abyss:  #06131f;
+  --deep:   #0c2a3d;
+  --tide:   #1b4a63;
+  --shoal:  #2d6b85;
+  --foam:   #7fd4d9;
+  --sea-ink:#0f3a52;
+
+  --buoy:      #e2643a;
+  --buoy-soft: #ff8a4c;
+  --buoy-glow: rgba(226, 100, 58, .16);
+
+  --fog:   #f4f6f8;
+  --mist:  #eaeef1;
+  --paper: #ffffff;
+
+  --ok:    #2f8f6d;
+  --warn:  #c8912a;
+  --alert: #d94040;
+
+  /* 라이트 (기본) — 흰 바탕 */
+  --bg:        var(--fog);
+  --surface:   var(--paper);
+  --surface-2: var(--mist);
+  --line:      rgba(15, 58, 82, .13);
+  --line-firm: rgba(15, 58, 82, .26);
+  --ink:       #10303f;
+  --ink-mid:   #52707d;
+  --ink-dim:   #85999f;
+  --shadow:    0 12px 30px -18px rgba(15, 58, 82, .5);
+
+  --r-sm: 10px;
+  --r:    14px;
+  --r-lg: 20px;
+}
+
+:root[data-ui="dark"] {
+  --bg:        #061520;
+  --surface:   #0a2030;
+  --surface-2: #10334a;
+  --line:      rgba(127, 212, 217, .16);
+  --line-firm: rgba(127, 212, 217, .32);
+  --ink:       #e8f4f6;
+  --ink-mid:   #9fc2cd;
+  --ink-dim:   #6b93a3;
+  --buoy:      #ff8a4c;
+  --ok:        #5fc9a0;
+  --warn:      #f2c14e;
+  --alert:     #ff5c5c;
+  --shadow:    0 18px 40px -20px rgba(0, 0, 0, .8);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* 클래스의 display 가 UA 의 [hidden] 을 이기는 것을 막는다 */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.display { font-family: Jua, "Noto Sans KR", sans-serif; font-weight: 400; }
+
+.eyebrow {
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-dim); font-weight: 700;
+}

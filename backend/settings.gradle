@@ -1,0 +1,7 @@
+plugins {
+    // 로컬에 JDK 21이 없어도 Gradle이 받아오게 한다.
+    // 없으면 "No matching toolchains found" 로 빌드가 죽는다.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'floaq'

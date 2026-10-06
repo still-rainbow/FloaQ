@@ -1,0 +1,45 @@
+# 로컬 개발용. 앱은 IDE에서 띄우고 의존 서비스만 컨테이너로 쓴다.
+services:
+  postgres:
+    # TimescaleDB. buoy·imu 가 하이퍼테이블이라 확장이 적재된 이미지여야 한다 (V1__init.sql ⑤).
+    # -oss = Apache-2.0 빌드. 압축·연속집계(TSL 전용)를 쓰지 않으므로 라이선스 질문 자체를 없앤다.
+    # ⚠ postgres:17-alpine 으로 만든 기존 pgdata 볼륨에는 확장이 없다 —
+    #   첫 전환 때 `docker compose down -v` 로 볼륨을 지우고 다시 올린다. 배포 전이라 가능하다.
+    image: timescale/timescaledb:2.21.3-pg17-oss
+    environment:
+      POSTGRES_DB: floaq
+      POSTGRES_USER: floaq
+      POSTGRES_PASSWORD: floaq
+      TZ: Asia/Seoul
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgredatabase/data
+      - /etc/localtime:/etc/localtime:ro   # alpine 은 tzdata 가 없어 TZ 만으로는 안 먹는다
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U floaq"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    # 이 Redis는 캐시가 아니라 진행 중인 사고 세션·부표 마지막 위치의 저장소다.
+    # eviction이 일어나면 사고 세션이 로그 한 줄 없이 사라진다.
+    # noeviction 은 한도에서 쓰기가 OOM 에러로 실패해 앱 예외로 즉시 드러난다.
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy noeviction
+      --appendonly yes
+    ports: ["6379:6379"]
+    volumes:
+      - redisdata:/data
+      - /etc/localtime:/etc/localtime:ro
+
+  # mosquitto 를 뺐다 (2026-09-11). 선박↔서버는 REST only 로 확정 —
+  # Pi 가 이미 두절 대비 SQLite 큐를 갖고 있어 브로커 측 큐잉이 중복이었고,
+  # 전송 계층이 둘이면 재전송·멱등 처리도 두 벌이 된다(계획.md §1).
+  # MQTT 는 선내에만 남고 브로커는 Pi 에 있다(ref/mqtt.md).
+
+volumes:
+  pgdata:
+  redisdata:

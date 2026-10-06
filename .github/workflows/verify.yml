@@ -1,0 +1,48 @@
+name: Verify source snapshot
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.25.0'
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm typecheck && pnpm build
+        working-directory: frontend
+      - run: pnpm --filter @floaq/kiosk check:mqtt && pnpm --filter @floaq/kiosk check:ocean && pnpm --filter @floaq/kiosk check:nav && pnpm --filter @floaq/kiosk check:chart
+        working-directory: frontend
+  portable-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/check_public.py
+      # CPU tests only. Board SDKs and detector model weights are not installed here.
+      - run: python -m pip install pytest==9.1.1 PyYAML==6.0.3 numpy pydantic paho-mqtt==2.1.0 requests==2.34.2 pyserial==3.5 fastapi==0.142.2 httpx==0.28.1 python-dotenv==1.2.4
+      - run: python -m pytest tests -q
+        working-directory: iot/pi
+      - run: python -m pytest tests -q
+        working-directory: ai
+      - run: python -m compileall -q ai/src iot/pi iot/jetson hardware
+  backend-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: bash gradlew unitTest --no-daemon
+        working-directory: backend

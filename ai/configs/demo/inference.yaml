@@ -1,0 +1,4 @@
+default_confidence: 0.25
+nms_iou: 0.70
+evaluation_match_iou: 0.50
+note: 클래스별 confidence 최적화는 수행하지 않음
