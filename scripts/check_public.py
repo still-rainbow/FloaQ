@@ -11,6 +11,7 @@ RULES = {
     'API token': re.compile(r'\b(?:sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}|AKIA[A-Z0-9]{16})\b'),
     'credential in URL': re.compile(r'https?://[^\s/:]+:[^\s/@]+@'),
     'institution endpoint': re.compile(r'\bs{2}afy\.(?:com|io)\b|\b70\.12\.\d+\.\d+', re.I),
+    'internal issue tracker': re.compile(r'training[.]atlassian[.]net', re.I),
 }
 EXCLUDED = {'.pt', '.pth', '.onnx', '.engine', '.npz', '.npy', '.whl', '.db', '.sqlite', '.mp4', '.avi', '.stl'}
 
